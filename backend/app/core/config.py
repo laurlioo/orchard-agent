@@ -17,17 +17,21 @@ class Settings:
     def sqlalchemy_url(self) -> str:
         """返回 SQLAlchemy 可用的连接 URL。"""
         if self.DATABASE_URL:
-            # Turso: libsql://host?authToken=xxx → sqlalchemy 用 sqlite+libsql 驱动
             url = self.DATABASE_URL
-            # 已带 scheme 直接转，否则补 scheme
+            # Turso 新版 API 需要 HTTPS 端点，libsql:// 会触发 308 重定向
             if url.startswith("libsql://"):
-                # sqlalchemy-libsql 期望格式: sqlite+libsql://host?authToken=xxx
-                return url.replace("libsql://", "sqlite+libsql://", 1)
+                # sqlite+libsql-https:// 强制走 HTTPS，避免 308
+                return url.replace("libsql://", "sqlite+libsql-https://", 1)
             if url.startswith("sqlite+libsql://"):
+                # 已有 libsql scheme 但不是 HTTPS，也转成 HTTPS
+                return url.replace("sqlite+libsql://", "sqlite+libsql-https://", 1)
+            if url.startswith("sqlite+libsql-https://"):
                 return url
+            if url.startswith("https://"):
+                # 直接 https:// 开头，补 sqlite+libsql-https scheme
+                return url.replace("https://", "sqlite+libsql-https://", 1)
             if url.startswith("sqlite://"):
                 return url
-            # 兜底：当作本地路径
             return f"sqlite:///{url}"
         # 本地回退
         return f"sqlite:///{self.DB_PATH}"
