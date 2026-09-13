@@ -1,6 +1,6 @@
 # Render 部署配置
 # 在 Render 新建 Web Service，选择 Python，根目录设为 backend/
-# 环境变量需在 Render 控制台配置：DEEPSEEK_API_KEY、DEEPSEEK_BASE_URL、DEEPSEEK_MODEL、CORS_ORIGINS
+# 环境变量需在 Render 控制台配置：DEEPSEEK_API_KEY、DEEPSEEK_BASE_URL、DEEPSEEK_MODEL、CORS_ORIGINS、DATABASE_URL
 services:
   - type: web
     name: orchard-agent-backend
@@ -17,5 +17,7 @@ services:
         value: deepseek-chat
       - key: CORS_ORIGINS
         value: https://your-vercel-app.vercel.app  # 部署后替换为你的 Vercel 域名
+      - key: DATABASE_URL
+        sync: false  # 从 Turso 控制台复制 libsql://host?authToken=xxx 填入；留空则回退本地 SQLite
       - key: DB_PATH
         value: ./orchard.db
