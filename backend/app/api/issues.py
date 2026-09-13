@@ -1,0 +1,57 @@
+"""问题工单 CRUD。"""
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.models.issue import Issue
+from app.schemas.issue import IssueCreate, IssueOut, IssueUpdate
+
+router = APIRouter(prefix="/issues", tags=["issues"])
+
+
+@router.get("", response_model=list[IssueOut])
+def list_issues(
+    status: str | None = Query(None),
+    category: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Issue)
+    if status:
+        q = q.filter(Issue.status == status)
+    if category:
+        q = q.filter(Issue.category == category)
+    return q.order_by(Issue.created_at.desc()).all()
+
+
+@router.post("", response_model=IssueOut, status_code=201)
+def create_issue(payload: IssueCreate, db: Session = Depends(get_db)):
+    issue = Issue(**payload.model_dump())
+    db.add(issue)
+    db.commit()
+    db.refresh(issue)
+    return issue
+
+
+@router.patch("/{issue_id}", response_model=IssueOut)
+def update_issue(issue_id: int, payload: IssueUpdate, db: Session = Depends(get_db)):
+    issue = db.get(Issue, issue_id)
+    if not issue:
+        raise HTTPException(404, "issue not found")
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(issue, k, v)
+    # 如果状态从 open 变 closed，自动填 resolved_at
+    if payload.status == "closed" and issue.resolved_at is None:
+        issue.resolved_at = datetime.now()
+    db.commit()
+    db.refresh(issue)
+    return issue
+
+
+@router.delete("/{issue_id}", status_code=204)
+def delete_issue(issue_id: int, db: Session = Depends(get_db)):
+    issue = db.get(Issue, issue_id)
+    if not issue:
+        raise HTTPException(404, "issue not found")
+    db.delete(issue)
+    db.commit()

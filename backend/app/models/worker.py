@@ -1,0 +1,16 @@
+"""工人模型：name/phone/role/hourly_rate/active。"""
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, func
+
+from app.core.database import Base
+
+
+class Worker(Base):
+    __tablename__ = "workers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False, index=True)
+    phone = Column(String(20), default="")
+    role = Column(String(50), default="工人")  # 采摘/分拣/养护/管理
+    hourly_rate = Column(Float, default=0.0)  # 时薪（元/小时）
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
