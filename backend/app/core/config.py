@@ -38,8 +38,8 @@ class Settings:
     def connect_args(self) -> dict:
         """SQLAlchemy create_engine 的 connect_args。"""
         if self.is_turso:
-            # Turso: auth_token 通过 connect_args 传入，不能放在 URL 里
-            args = {"secure": True}
+            # Turso: auth_token 通过 connect_args 传入，secure 已在 URL query 里
+            args = {}
             if self.DATABASE_AUTH_TOKEN:
                 args["auth_token"] = self.DATABASE_AUTH_TOKEN
             return args
