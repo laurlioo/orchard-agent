@@ -9,32 +9,42 @@ class Settings:
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
     DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-    # 优先用 Turso 托管 SQLite；若未配置则回退本地 SQLite
+    # Turso 数据库 URL（不含 authToken，单独存在 DATABASE_AUTH_TOKEN）
+    # 格式: libsql://orchard-xxx.turso.io
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    # Turso auth token（可选，仅 Turso 模式需要）
+    DATABASE_AUTH_TOKEN: str = os.getenv("DATABASE_AUTH_TOKEN", "")
     DB_PATH: str = os.getenv("DB_PATH", "./orchard.db")
+
+    @property
+    def is_turso(self) -> bool:
+        """是否使用 Turso 托管数据库。"""
+        return bool(self.DATABASE_URL and self.DATABASE_URL.startswith("libsql://"))
 
     @property
     def sqlalchemy_url(self) -> str:
         """返回 SQLAlchemy 可用的连接 URL。"""
-        if self.DATABASE_URL:
-            url = self.DATABASE_URL
-            # Turso 新版 API 需要 HTTPS 端点，libsql:// 会触发 308 重定向
-            if url.startswith("libsql://"):
-                # sqlite+libsql-https:// 强制走 HTTPS，避免 308
-                return url.replace("libsql://", "sqlite+libsql-https://", 1)
-            if url.startswith("sqlite+libsql://"):
-                # 已有 libsql scheme 但不是 HTTPS，也转成 HTTPS
-                return url.replace("sqlite+libsql://", "sqlite+libsql-https://", 1)
-            if url.startswith("sqlite+libsql-https://"):
-                return url
-            if url.startswith("https://"):
-                # 直接 https:// 开头，补 sqlite+libsql-https scheme
-                return url.replace("https://", "sqlite+libsql-https://", 1)
-            if url.startswith("sqlite://"):
-                return url
-            return f"sqlite:///{url}"
-        # 本地回退
+        if self.is_turso:
+            # Turso 官方推荐: sqlite+libsql://host?secure=true
+            # secure=true 强制 HTTPS，避免 308 重定向
+            host = self.DATABASE_URL.replace("libsql://", "", 1)
+            return f"sqlite+libsql://{host}?secure=true"
+        if self.DATABASE_URL and self.DATABASE_URL.startswith("sqlite://"):
+            return self.DATABASE_URL
+        # 本地 SQLite 回退
         return f"sqlite:///{self.DB_PATH}"
+
+    @property
+    def connect_args(self) -> dict:
+        """SQLAlchemy create_engine 的 connect_args。"""
+        if self.is_turso:
+            # Turso: auth_token 通过 connect_args 传入，不能放在 URL 里
+            args = {"secure": True}
+            if self.DATABASE_AUTH_TOKEN:
+                args["auth_token"] = self.DATABASE_AUTH_TOKEN
+            return args
+        # 本地 SQLite
+        return {"check_same_thread": False}
 
 
 settings = Settings()
