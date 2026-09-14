@@ -7,7 +7,7 @@ export default function WorkLogs() {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState<Partial<WorkLog>>({ worker_id: 0, hours: 8, task_desc: '' })
+  const [form, setForm] = useState<Partial<WorkLog>>({ worker_id: 0, hours: 8, overtime_hours: 0, task_desc: '' })
 
   const load = async () => {
     try {
@@ -28,11 +28,12 @@ export default function WorkLogs() {
 
   const submit = async () => {
     if (!form.worker_id) return alert('请选择工人')
-    if (!form.hours || form.hours <= 0) return alert('工时必须大于 0')
+    const totalHours = (form.hours || 0) + (form.overtime_hours || 0)
+    if (totalHours <= 0) return alert('正常工时和加班工时不能都为 0')
     try {
       await WorkLogsApi.create({ ...form, date } as any)
       setAdding(false)
-      setForm({ worker_id: 0, hours: 8, task_desc: '' })
+      setForm({ worker_id: 0, hours: 8, overtime_hours: 0, task_desc: '' })
       load()
     } catch (e: any) {
       alert(e.message)
@@ -66,7 +67,8 @@ export default function WorkLogs() {
             <tr>
               <th className="px-4 py-2 text-left">工人</th>
               <th className="px-4 py-2 text-left">岗位</th>
-              <th className="px-4 py-2 text-left">工时 (h)</th>
+              <th className="px-4 py-2 text-left">正常工时</th>
+              <th className="px-4 py-2 text-left">加班工时</th>
               <th className="px-4 py-2 text-left">任务描述</th>
               <th className="px-4 py-2 text-left">操作</th>
             </tr>
@@ -74,14 +76,21 @@ export default function WorkLogs() {
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-slate-400">该日暂无工时记录</td>
+                <td colSpan={6} className="text-center py-6 text-slate-400">该日暂无工时记录</td>
               </tr>
             ) : (
               list.map((l) => (
                 <tr key={l.id} className="border-t border-slate-100">
                   <td className="px-4 py-2">{l.worker?.name ?? `#${l.worker_id}`}</td>
                   <td className="px-4 py-2 text-slate-600">{l.worker?.role ?? '-'}</td>
-                  <td className="px-4 py-2">{l.hours}</td>
+                  <td className="px-4 py-2">{l.hours}h</td>
+                  <td className="px-4 py-2">
+                    {l.overtime_hours > 0 ? (
+                      <span className="text-amber-600">{l.overtime_hours}h</span>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-slate-600">{l.task_desc || '-'}</td>
                   <td className="px-4 py-2">
                     <button
@@ -114,7 +123,7 @@ export default function WorkLogs() {
                 <div>
                   <div className="font-medium text-sm">{l.worker?.name ?? `#${l.worker_id}`}</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {l.worker?.role ?? '-'} · {l.hours}h
+                    {l.worker?.role ?? '-'} · 正常 {l.hours}h{l.overtime_hours > 0 && <span className="text-amber-600"> · 加班 {l.overtime_hours}h</span>}
                   </div>
                 </div>
                 <button
@@ -154,19 +163,33 @@ export default function WorkLogs() {
                   <option value={0}>请选择</option>
                   {workers.map((w) => (
                     <option key={w.id} value={w.id}>
-                      {w.name} - {w.role} - ¥{w.hourly_rate}/h
+                      {w.name} - {w.role} - ¥{w.hourly_rate}/h ({w.overtime_rate}x加班)
                     </option>
                   ))}
                 </select>
               </label>
               <label className="block text-sm">
-                <span className="text-slate-600">工时 (小时)</span>
+                <span className="text-slate-600">正常工时 (小时)</span>
                 <input
                   type="number"
                   step="0.5"
+                  min="0"
                   value={form.hours}
                   onChange={(e) => setForm({ ...form, hours: parseFloat(e.target.value) || 0 })}
                   className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+                  placeholder="如 8"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-slate-600">加班工时 (小时)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={form.overtime_hours}
+                  onChange={(e) => setForm({ ...form, overtime_hours: parseFloat(e.target.value) || 0 })}
+                  className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+                  placeholder="如 2，无加班填 0"
                 />
               </label>
               <label className="block text-sm">

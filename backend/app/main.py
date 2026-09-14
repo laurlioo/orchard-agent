@@ -8,7 +8,9 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from app.core.database import init_db
+from sqlalchemy import text
+
+from app.core.database import init_db, engine
 from app.core.security import decode_token
 from app.api import auth, workers, worklogs, production, issues, wages, reports, agent
 from app.models.user import User
@@ -59,10 +61,30 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+def _migrate_schema():
+    """启动时自动补列（Turso 上已有旧表时，需要 ALTER TABLE 补新列）。"""
+    ALTERS = [
+        ("workers", "overtime_rate", "ALTER TABLE workers ADD COLUMN overtime_rate FLOAT DEFAULT 1.5"),
+        ("work_logs", "overtime_hours", "ALTER TABLE work_logs ADD COLUMN overtime_hours FLOAT DEFAULT 0"),
+    ]
+    with engine.connect() as conn:
+        for table, col, sql in ALTERS:
+            try:
+                result = conn.execute(text(
+                    f"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{col}'"
+                ))
+                if result.scalar() == 0:
+                    conn.execute(text(sql))
+                    conn.commit()
+            except Exception:
+                pass  # 表不存在时忽略，init_db 会建完整表
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时建表
+    # 启动时建表 + 补列
     init_db()
+    _migrate_schema()
     yield
 
 

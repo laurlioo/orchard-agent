@@ -52,7 +52,8 @@ def _get_worklogs(db: Session, args: dict) -> str:
     )
     return _json([
         {"id": r.id, "worker_id": r.worker_id, "worker_name": r.worker.name,
-         "date": str(r.date), "hours": r.hours, "task_desc": r.task_desc}
+         "date": str(r.date), "hours": r.hours, "overtime_hours": r.overtime_hours,
+         "task_desc": r.task_desc}
         for r in rows
     ])
 
@@ -83,6 +84,9 @@ def _calculate_wages(db: Session, args: dict) -> str:
         "period": f"{s}~{e}",
         "workers": [r.model_dump() for r in rows],
         "total_hours": round(sum(r.hours for r in rows), 2),
+        "total_overtime_hours": round(sum(r.overtime_hours for r in rows), 2),
+        "total_regular_wages": round(sum(r.regular_wage for r in rows), 2),
+        "total_overtime_wages": round(sum(r.overtime_wage for r in rows), 2),
         "total_wages": round(sum(r.wage for r in rows), 2),
     })
 

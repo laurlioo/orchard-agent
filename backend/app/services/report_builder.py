@@ -72,6 +72,9 @@ def build_report(db: Session, start: date, end: date) -> ReportData:
         total_cost=round(sum(c.cost for c in categories), 2),
         total_gross_profit=round(sum(c.gross_profit for c in categories), 2),
         total_hours=round(sum(w.hours for w in workers), 2),
+        total_overtime_hours=round(sum(w.overtime_hours for w in workers), 2),
+        total_regular_wages=round(sum(w.regular_wage for w in workers), 2),
+        total_overtime_wages=round(sum(w.overtime_wage for w in workers), 2),
         total_wages=round(sum(w.wage for w in workers), 2),
     )
 
@@ -95,7 +98,10 @@ def export_excel(report: ReportData) -> bytes:
     ws.append(["总销售额", report.total_revenue])
     ws.append(["总成本", report.total_cost])
     ws.append(["总毛利", report.total_gross_profit])
-    ws.append(["总工时", report.total_hours])
+    ws.append(["正常工时", report.total_hours])
+    ws.append(["加班工时", report.total_overtime_hours])
+    ws.append(["正常工资", report.total_regular_wages])
+    ws.append(["加班工资", report.total_overtime_wages])
     ws.append(["总工资", report.total_wages])
     if report.summary:
         ws.append([])
@@ -131,9 +137,33 @@ def export_excel(report: ReportData) -> bytes:
 
     # Sheet 3: 工资明细
     ws3 = wb.create_sheet("工资明细")
-    ws3.append(["工人", "岗位", "工时", "时薪", "工资"])
+    ws3.append(
+        [
+            "工人",
+            "岗位",
+            "正常工时",
+            "加班工时",
+            "时薪",
+            "加班倍数",
+            "正常工资",
+            "加班工资",
+            "总工资",
+        ]
+    )
     for w in report.workers:
-        ws3.append([w.name, w.role, w.hours, w.hourly_rate, w.wage])
+        ws3.append(
+            [
+                w.name,
+                w.role,
+                w.hours,
+                w.overtime_hours,
+                w.hourly_rate,
+                w.overtime_rate,
+                w.regular_wage,
+                w.overtime_wage,
+                w.wage,
+            ]
+        )
 
     # 简单列宽自适应
     for sheet in [ws, ws2, ws3]:

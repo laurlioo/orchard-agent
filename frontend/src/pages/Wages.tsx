@@ -57,9 +57,11 @@ export default function Wages() {
 
       {data && (
         <>
-          <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 mb-4">
             <Stat label="区间" value={data.period} />
-            <Stat label="总工时" value={`${data.total_hours}h`} />
+            <Stat label="正常工时" value={`${data.total_hours}h`} />
+            <Stat label="加班工时" value={`${data.total_overtime_hours}h`} amber />
+            <Stat label="正常+加班工资" value={`¥${data.total_regular_wages} + ¥${data.total_overtime_wages}`} />
             <Stat label="总工资" value={`¥${data.total_wages}`} highlight />
           </div>
 
@@ -68,26 +70,34 @@ export default function Wages() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="px-4 py-2 text-left">工人</th>
-                  <th className="px-4 py-2 text-left">岗位</th>
-                  <th className="px-4 py-2 text-left">工时 (h)</th>
-                  <th className="px-4 py-2 text-left">时薪</th>
-                  <th className="px-4 py-2 text-left">工资 (元)</th>
+                  <th className="px-3 py-2 text-left">工人</th>
+                  <th className="px-3 py-2 text-left">岗位</th>
+                  <th className="px-3 py-2 text-right">正常工时</th>
+                  <th className="px-3 py-2 text-right">加班工时</th>
+                  <th className="px-3 py-2 text-right">时薪</th>
+                  <th className="px-3 py-2 text-right">加班倍数</th>
+                  <th className="px-3 py-2 text-right">正常工资</th>
+                  <th className="px-3 py-2 text-right">加班工资</th>
+                  <th className="px-3 py-2 text-right">总工资</th>
                 </tr>
               </thead>
               <tbody>
                 {data.workers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-slate-400">该区间暂无工时</td>
+                    <td colSpan={9} className="text-center py-6 text-slate-400">该区间暂无工时</td>
                   </tr>
                 ) : (
                   data.workers.map((w) => (
                     <tr key={w.worker_id} className="border-t border-slate-100">
-                      <td className="px-4 py-2">{w.name}</td>
-                      <td className="px-4 py-2 text-slate-600">{w.role}</td>
-                      <td className="px-4 py-2">{w.hours}</td>
-                      <td className="px-4 py-2">¥{w.hourly_rate}/h</td>
-                      <td className="px-4 py-2 font-medium">¥{w.wage}</td>
+                      <td className="px-3 py-2">{w.name}</td>
+                      <td className="px-3 py-2 text-slate-600">{w.role}</td>
+                      <td className="px-3 py-2 text-right">{w.hours}h</td>
+                      <td className="px-3 py-2 text-right text-amber-600">{w.overtime_hours > 0 ? `${w.overtime_hours}h` : '-'}</td>
+                      <td className="px-3 py-2 text-right">¥{w.hourly_rate}</td>
+                      <td className="px-3 py-2 text-right">{w.overtime_rate}x</td>
+                      <td className="px-3 py-2 text-right">¥{w.regular_wage}</td>
+                      <td className="px-3 py-2 text-right text-amber-600">{w.overtime_wage > 0 ? `¥${w.overtime_wage}` : '-'}</td>
+                      <td className="px-3 py-2 text-right font-medium">¥{w.wage}</td>
                     </tr>
                   ))
                 )}
@@ -101,12 +111,22 @@ export default function Wages() {
               <div className="text-center py-6 text-slate-400 text-sm">该区间暂无工时</div>
             ) : (
               data.workers.map((w) => (
-                <div key={w.worker_id} className="bg-white rounded-lg border border-slate-200 p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-sm">{w.name}</div>
-                    <div className="text-xs text-slate-500">{w.role} · {w.hours}h · ¥{w.hourly_rate}/h</div>
+                <div key={w.worker_id} className="bg-white rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-sm">{w.name}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {w.role} · ¥{w.hourly_rate}/h ({w.overtime_rate}x加班)
+                      </div>
+                    </div>
+                    <div className="text-base font-bold text-emerald-600">¥{w.wage}</div>
                   </div>
-                  <div className="text-base font-bold text-emerald-600">¥{w.wage}</div>
+                  <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-100 text-xs">
+                    <div>正常 {w.hours}h → ¥{w.regular_wage}</div>
+                    <div className="text-amber-600">
+                      加班 {w.overtime_hours}h → {w.overtime_wage > 0 ? `¥${w.overtime_wage}` : '-'}
+                    </div>
+                  </div>
                 </div>
               ))
             )}
@@ -117,15 +137,19 @@ export default function Wages() {
   )
 }
 
-function Stat({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+function Stat({ label, value, highlight = false, amber = false }: { label: string; value: string; highlight?: boolean; amber?: boolean }) {
   return (
     <div
       className={`p-4 rounded-lg border ${
-        highlight ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
+        highlight
+          ? 'bg-emerald-50 border-emerald-200'
+          : amber
+          ? 'bg-amber-50 border-amber-200'
+          : 'bg-white border-slate-200'
       }`}
     >
       <div className="text-xs text-slate-500">{label}</div>
-      <div className={`text-lg font-bold mt-1 ${highlight ? 'text-emerald-700' : ''}`}>{value}</div>
+      <div className={`text-sm md:text-lg font-bold mt-1 ${highlight ? 'text-emerald-700' : amber ? 'text-amber-700' : ''}`}>{value}</div>
     </div>
   )
 }

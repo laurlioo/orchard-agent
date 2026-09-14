@@ -85,6 +85,7 @@ export interface Worker {
   phone: string
   role: string
   hourly_rate: number
+  overtime_rate: number
   active: boolean
   created_at: string
 }
@@ -102,7 +103,8 @@ export interface WorkLog {
   id: number
   worker_id: number
   date: string
-  hours: number
+  hours: number  // 正常工时
+  overtime_hours: number  // 加班工时
   task_desc: string
   created_at: string
   worker?: Worker
@@ -134,8 +136,12 @@ export interface WageRow {
   worker_id: number
   name: string
   role: string
-  hours: number
   hourly_rate: number
+  overtime_rate: number
+  hours: number  // 正常工时
+  overtime_hours: number  // 加班工时
+  regular_wage: number
+  overtime_wage: number
   wage: number
 }
 
@@ -143,6 +149,9 @@ export interface WageSummary {
   period: string
   workers: WageRow[]
   total_hours: number
+  total_overtime_hours: number
+  total_regular_wages: number
+  total_overtime_wages: number
   total_wages: number
 }
 
@@ -169,6 +178,9 @@ export interface ReportData {
   total_cost: number
   total_gross_profit: number
   total_hours: number
+  total_overtime_hours: number
+  total_regular_wages: number
+  total_overtime_wages: number
   total_wages: number
   summary: string
 }

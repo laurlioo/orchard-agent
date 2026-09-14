@@ -17,13 +17,17 @@ class CategoryRow(BaseModel):
 
 
 class WorkerWageRow(BaseModel):
-    """单工人工资行。"""
+    """单工人工资行（拆分正常/加班）。"""
     worker_id: int
     name: str
     role: str
-    hours: float
     hourly_rate: float
-    wage: float  # hours * hourly_rate
+    overtime_rate: float  # 加班倍数
+    hours: float  # 正常工时
+    overtime_hours: float  # 加班工时
+    regular_wage: float  # 正常工时工资 = hours * hourly_rate
+    overtime_wage: float  # 加班工资 = overtime_hours * hourly_rate * overtime_rate
+    wage: float  # 总工资 = regular_wage + overtime_wage
 
 
 class ReportData(BaseModel):
@@ -38,5 +42,8 @@ class ReportData(BaseModel):
     total_cost: float
     total_gross_profit: float
     total_hours: float
+    total_overtime_hours: float
+    total_regular_wages: float
+    total_overtime_wages: float
     total_wages: float
     summary: str = ""  # AI 生成的文字摘要

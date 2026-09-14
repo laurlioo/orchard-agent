@@ -42,7 +42,7 @@ export default function Workers() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg md:text-xl font-bold">工人管理</h1>
         <button
-          onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, active: true })}
+          onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, overtime_rate: 1.5, active: true })}
           className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
         >
           <Plus size={16} /> 新增
@@ -57,7 +57,8 @@ export default function Workers() {
               <th className="px-4 py-2 text-left">姓名</th>
               <th className="px-4 py-2 text-left">电话</th>
               <th className="px-4 py-2 text-left">岗位</th>
-              <th className="px-4 py-2 text-left">时薪 (元/小时)</th>
+              <th className="px-4 py-2 text-left">时薪</th>
+              <th className="px-4 py-2 text-left">加班倍数</th>
               <th className="px-4 py-2 text-left">状态</th>
               <th className="px-4 py-2 text-left">操作</th>
             </tr>
@@ -65,11 +66,11 @@ export default function Workers() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">加载中...</td>
+                <td colSpan={7} className="text-center py-6 text-slate-400">加载中...</td>
               </tr>
             ) : list.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">暂无工人，点击右上角新增</td>
+                <td colSpan={7} className="text-center py-6 text-slate-400">暂无工人，点击右上角新增</td>
               </tr>
             ) : (
               list.map((w) => (
@@ -77,7 +78,8 @@ export default function Workers() {
                   <td className="px-4 py-2">{w.name}</td>
                   <td className="px-4 py-2 text-slate-600">{w.phone || '-'}</td>
                   <td className="px-4 py-2">{w.role}</td>
-                  <td className="px-4 py-2">{w.hourly_rate}</td>
+                  <td className="px-4 py-2">¥{w.hourly_rate}/h</td>
+                  <td className="px-4 py-2">{w.overtime_rate}x</td>
                   <td className="px-4 py-2">
                     <span
                       className={`px-2 py-0.5 rounded text-xs ${
@@ -123,7 +125,7 @@ export default function Workers() {
                 <div>
                   <div className="font-medium text-sm">{w.name}</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {w.role} · ¥{w.hourly_rate}/h · {w.phone || '无电话'}
+                    {w.role} · ¥{w.hourly_rate}/h · {w.overtime_rate}x加班 · {w.phone || '无电话'}
                   </div>
                 </div>
                 <span
@@ -171,6 +173,12 @@ export default function Workers() {
                 type="number"
                 value={String(editing.hourly_rate ?? 0)}
                 onChange={(v) => setEditing({ ...editing, hourly_rate: parseFloat(v) || 0 })}
+              />
+              <Field
+                label="加班倍数（如 1.5 表示 1.5 倍时薪）"
+                type="number"
+                value={String(editing.overtime_rate ?? 1.5)}
+                onChange={(v) => setEditing({ ...editing, overtime_rate: parseFloat(v) || 1.5 })}
               />
               <label className="flex items-center gap-2 text-sm">
                 <input

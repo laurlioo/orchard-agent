@@ -8,6 +8,7 @@ class WorkerBase(BaseModel):
     phone: str = Field("", max_length=20)
     role: str = Field("工人", max_length=50)
     hourly_rate: float = Field(0.0, ge=0)
+    overtime_rate: float = Field(1.5, ge=1.0)  # 加班倍数
     active: bool = True
 
 
@@ -20,6 +21,7 @@ class WorkerUpdate(BaseModel):
     phone: str | None = None
     role: str | None = None
     hourly_rate: float | None = None
+    overtime_rate: float | None = None
     active: bool | None = None
 
 

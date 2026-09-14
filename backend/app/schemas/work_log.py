@@ -8,7 +8,8 @@ from app.schemas.worker import WorkerOut
 class WorkLogBase(BaseModel):
     worker_id: int
     date: date
-    hours: float = Field(..., gt=0)
+    hours: float = Field(0, ge=0)  # 正常工时
+    overtime_hours: float = Field(0, ge=0)  # 加班工时
     task_desc: str = Field("", max_length=200)
 
 
@@ -18,6 +19,7 @@ class WorkLogCreate(WorkLogBase):
 
 class WorkLogUpdate(BaseModel):
     hours: float | None = None
+    overtime_hours: float | None = None
     task_desc: str | None = None
 
 

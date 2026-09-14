@@ -115,10 +115,12 @@ export default function Reports() {
 
       {data && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
             <Stat label="总产量" value={String(data.total_quantity)} />
             <Stat label="总销售额" value={`¥${data.total_revenue}`} />
             <Stat label="总毛利" value={`¥${data.total_gross_profit}`} highlight />
+            <Stat label="正常+加班工时" value={`${data.total_hours}h + ${data.total_overtime_hours}h`} />
+            <Stat label="正常+加班工资" value={`¥${data.total_regular_wages} + ¥${data.total_overtime_wages}`} />
             <Stat label="总工资" value={`¥${data.total_wages}`} />
           </div>
 
@@ -178,8 +180,11 @@ export default function Reports() {
                 <thead className="text-slate-600">
                   <tr>
                     <th className="px-3 py-1.5 text-left">工人</th>
-                    <th className="px-3 py-1.5 text-left">工时</th>
-                    <th className="px-3 py-1.5 text-left">工资</th>
+                    <th className="px-3 py-1.5 text-left">正常工时</th>
+                    <th className="px-3 py-1.5 text-left">加班工时</th>
+                    <th className="px-3 py-1.5 text-left">正常工资</th>
+                    <th className="px-3 py-1.5 text-left">加班工资</th>
+                    <th className="px-3 py-1.5 text-left">总工资</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -187,7 +192,10 @@ export default function Reports() {
                     <tr key={w.worker_id} className="border-t border-slate-100">
                       <td className="px-3 py-1.5">{w.name}</td>
                       <td className="px-3 py-1.5">{w.hours}h</td>
-                      <td className="px-3 py-1.5">¥{w.wage}</td>
+                      <td className="px-3 py-1.5 text-amber-600">{w.overtime_hours > 0 ? `${w.overtime_hours}h` : '-'}</td>
+                      <td className="px-3 py-1.5">¥{w.regular_wage}</td>
+                      <td className="px-3 py-1.5 text-amber-600">{w.overtime_wage > 0 ? `¥${w.overtime_wage}` : '-'}</td>
+                      <td className="px-3 py-1.5 font-medium">¥{w.wage}</td>
                     </tr>
                   ))}
                 </tbody>
