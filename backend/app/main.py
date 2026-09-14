@@ -32,6 +32,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+        # OPTIONS 预检请求永远放行（CORS 机制，浏览器自动发，不带 Authorization header）
+        if request.method == "OPTIONS":
+            return await call_next(request)
         # 白名单放行
         if path in AUTH_WHITELIST:
             return await call_next(request)
