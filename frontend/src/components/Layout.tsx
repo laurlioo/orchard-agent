@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Users,
   ClipboardList,
@@ -9,8 +9,11 @@ import {
   AlertTriangle,
   MessageCircle,
   X,
+  Menu,
+  LogOut,
 } from 'lucide-react'
 import ChatPanel from './ChatPanel'
+import { clearToken } from '../api/client'
 
 const NAV = [
   { to: '/workers', label: '工人管理', icon: Users },
@@ -23,51 +26,70 @@ const NAV = [
 
 export default function Layout() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const logout = () => {
+    clearToken()
+    navigate('/login', { replace: true })
+  }
 
   return (
-    <div className="flex h-full">
-      {/* 侧边栏 */}
-      <aside className="w-56 bg-slate-800 text-slate-100 flex flex-col">
-        <div className="px-4 py-5 border-b border-slate-700">
-          <h1 className="text-lg font-bold">果园 Agent</h1>
-          <p className="text-xs text-slate-400 mt-0.5">运营助手</p>
-        </div>
-        <nav className="flex-1 py-3">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-700 transition ${
-                  isActive ? 'bg-slate-700 border-l-4 border-emerald-400' : 'border-l-4 border-transparent'
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+    <div className="h-full flex">
+      {/* 桌面侧边栏 */}
+      <aside className="hidden md:flex w-56 bg-slate-800 text-slate-100 flex-col">
+        <SidebarContent onNavigate={() => {}} onLogout={logout} />
       </aside>
 
+      {/* 移动端抽屉 */}
+      {menuOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 bg-black/40 z-40"
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-slate-800 text-slate-100 z-50 flex flex-col animate-[slidein_0.2s_ease-out]">
+            <SidebarContent
+              onNavigate={() => setMenuOpen(false)}
+              onLogout={logout}
+              showClose
+              onClose={() => setMenuOpen(false)}
+            />
+          </aside>
+        </>
+      )}
+
       {/* 主内容 */}
-      <main className="flex-1 overflow-auto">
-        <Outlet />
+      <main className="flex-1 overflow-auto flex flex-col">
+        {/* 移动端顶栏 */}
+        <header className="md:hidden flex items-center justify-between px-3 py-2.5 bg-slate-800 text-white sticky top-0 z-30">
+          <button onClick={() => setMenuOpen(true)} className="p-1">
+            <Menu size={22} />
+          </button>
+          <span className="text-sm font-medium">果园 Agent</span>
+          <button onClick={logout} className="p-1">
+            <LogOut size={18} />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
       </main>
 
       {/* 浮动聊天按钮 */}
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition"
+          className="fixed bottom-5 right-5 w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition z-30"
           title="打开 Agent 对话"
         >
-          <MessageCircle size={24} />
+          <MessageCircle size={22} />
         </button>
       )}
 
       {chatOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[32rem] bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col z-50">
+        <div className="fixed bottom-0 right-0 left-0 md:bottom-6 md:right-6 md:left-auto md:w-96 h-[70vh] md:h-[32rem] bg-white shadow-2xl border border-slate-200 flex flex-col z-50 rounded-t-lg md:rounded-lg">
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white rounded-t-lg">
             <div className="flex items-center gap-2">
               <MessageCircle size={18} />
@@ -80,6 +102,65 @@ export default function Layout() {
           <ChatPanel />
         </div>
       )}
+
+      <style>{`
+        @keyframes slidein {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
     </div>
+  )
+}
+
+function SidebarContent({
+  onNavigate,
+  onLogout,
+  showClose = false,
+  onClose,
+}: {
+  onNavigate: () => void
+  onLogout: () => void
+  showClose?: boolean
+  onClose?: () => void
+}) {
+  return (
+    <>
+      <div className="px-4 py-5 border-b border-slate-700 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold">果园 Agent</h1>
+          <p className="text-xs text-slate-400 mt-0.5">运营助手</p>
+        </div>
+        {showClose && (
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X size={20} />
+          </button>
+        )}
+      </div>
+      <nav className="flex-1 py-3">
+        {NAV.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-700 transition ${
+                isActive ? 'bg-slate-700 border-l-4 border-emerald-400' : 'border-l-4 border-transparent'
+              }`
+            }
+          >
+            <Icon size={18} />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <button
+        onClick={onLogout}
+        className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 border-t border-slate-700"
+      >
+        <LogOut size={18} />
+        退出登录
+      </button>
+    </>
   )
 }

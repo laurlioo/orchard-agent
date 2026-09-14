@@ -46,9 +46,9 @@ export default function Issues() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">问题工单</h1>
+        <h1 className="text-lg md:text-xl font-bold">问题工单</h1>
         <div className="flex gap-2 items-center">
           <select
             value={statusFilter}
@@ -119,8 +119,8 @@ export default function Issues() {
       </div>
 
       {adding && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40" onClick={() => setAdding(false)}>
-          <div className="bg-white p-5 rounded-lg w-96" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={() => setAdding(false)}>
+          <div className="bg-white p-5 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold mb-4">上报问题</h2>
             <div className="space-y-3">
               <label className="block text-sm">
@@ -173,8 +173,8 @@ export default function Issues() {
       )}
 
       {replying && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40" onClick={() => setReplying(null)}>
-          <div className="bg-white p-5 rounded-lg w-96" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={() => setReplying(null)}>
+          <div className="bg-white p-5 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold mb-2">处理工单 #{replying.id}</h2>
             <p className="text-sm text-slate-600 mb-3">{replying.content}</p>
             <label className="block text-sm">

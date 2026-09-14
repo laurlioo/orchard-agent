@@ -48,9 +48,9 @@ export default function Production() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">每日产量</h1>
+        <h1 className="text-lg md:text-xl font-bold">每日产量</h1>
         <div className="flex gap-2">
           {tab === 'logs' && (
             <input
@@ -93,7 +93,8 @@ export default function Production() {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      {/* 桌面：表格 */}
+      <div className="hidden md:block bg-white rounded-lg border border-slate-200 overflow-hidden">
         {tab === 'logs' ? (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-600">
@@ -180,6 +181,67 @@ export default function Production() {
               )}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* 移动端：卡片 */}
+      <div className="md:hidden space-y-2">
+        {tab === 'logs' ? (
+          logs.length === 0 ? (
+            <div className="text-center py-6 text-slate-400 text-sm bg-white rounded-lg border border-slate-200">该日暂无产量</div>
+          ) : (
+            logs.map((l) => (
+              <div key={l.id} className="bg-white rounded-lg border border-slate-200 p-3 flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-sm">{l.category?.name ?? `#${l.category_id}`}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    {l.quantity} {l.category?.unit ?? ''} · {l.date}
+                  </div>
+                  {l.notes && <div className="text-xs text-slate-600 mt-1">{l.notes}</div>}
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('删除?')) {
+                      await ProductionLogsApi.remove(l.id)
+                      load()
+                    }
+                  }}
+                  className="text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))
+          )
+        ) : products.length === 0 ? (
+          <div className="text-center py-6 text-slate-400 text-sm bg-white rounded-lg border border-slate-200">暂无品类</div>
+        ) : (
+          products.map((p) => (
+            <div key={p.id} className="bg-white rounded-lg border border-slate-200 p-3 flex items-center justify-between">
+              <div>
+                <div className="font-medium text-sm">{p.name}</div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  ¥{p.unit_price}/{p.unit} · 成本 ¥{p.cost_per_unit}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-emerald-600 font-medium">
+                  毛利 ¥{(p.unit_price - p.cost_per_unit).toFixed(2)}
+                </span>
+                <button
+                  onClick={async () => {
+                    if (confirm('删除该品类?')) {
+                      await ProductsApi.remove(p.id)
+                      load()
+                    }
+                  }}
+                  className="text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -278,8 +340,8 @@ function Modal({
   onSubmit: () => void
 }) {
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40" onClick={onClose}>
-      <div className="bg-white p-5 rounded-lg w-96" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={onClose}>
+      <div className="bg-white p-5 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-bold mb-4">{title}</h2>
         <div className="space-y-3">{children}</div>
         <div className="flex gap-2 mt-5">

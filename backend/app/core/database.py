@@ -26,5 +26,5 @@ def get_db():
 def init_db():
     """建表：导入所有模型后调用 create_all。"""
     # noqa: F401  确保模型被注册到 Base.metadata
-    from app.models import worker, work_log, product, production_log, issue  # noqa
+    from app.models import worker, work_log, product, production_log, issue, user  # noqa
     Base.metadata.create_all(bind=engine)

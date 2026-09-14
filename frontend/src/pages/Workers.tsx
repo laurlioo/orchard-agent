@@ -38,18 +38,19 @@ export default function Workers() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">工人管理</h1>
+        <h1 className="text-lg md:text-xl font-bold">工人管理</h1>
         <button
           onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, active: true })}
           className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
         >
-          <Plus size={16} /> 新增工人
+          <Plus size={16} /> 新增
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      {/* 桌面：表格 */}
+      <div className="hidden md:block bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
@@ -109,9 +110,57 @@ export default function Workers() {
         </table>
       </div>
 
+      {/* 移动端：卡片列表 */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <div className="text-center py-6 text-slate-400 text-sm">加载中...</div>
+        ) : list.length === 0 ? (
+          <div className="text-center py-6 text-slate-400 text-sm">暂无工人</div>
+        ) : (
+          list.map((w) => (
+            <div key={w.id} className="bg-white rounded-lg border border-slate-200 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-sm">{w.name}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    {w.role} · ¥{w.hourly_rate}/h · {w.phone || '无电话'}
+                  </div>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs ${
+                    w.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {w.active ? '在岗' : '停用'}
+                </span>
+              </div>
+              <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setEditing(w)}
+                  className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 border border-slate-200 rounded"
+                >
+                  <Pencil size={12} /> 编辑
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirm(`删除 ${w.name}?`)) {
+                      await WorkersApi.remove(w.id)
+                      load()
+                    }
+                  }}
+                  className="flex items-center gap-1 text-xs text-red-500 px-2 py-1 border border-slate-200 rounded"
+                >
+                  <Trash2 size={12} /> 删除
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {editing && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40" onClick={() => setEditing(null)}>
-          <div className="bg-white p-5 rounded-lg w-80" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={() => setEditing(null)}>
+          <div className="bg-white p-5 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold mb-4">{editing.id ? '编辑工人' : '新增工人'}</h2>
             <div className="space-y-3">
               <Field label="姓名" value={editing.name || ''} onChange={(v) => setEditing({ ...editing, name: v })} />

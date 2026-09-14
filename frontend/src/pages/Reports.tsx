@@ -55,11 +55,11 @@ export default function Reports() {
   })) ?? []
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">报表中心</h1>
+    <div className="p-4 md:p-6">
+      <h1 className="text-lg md:text-xl font-bold mb-4">报表中心</h1>
 
       <div className="bg-white p-4 rounded-lg border border-slate-200 mb-4">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-end gap-2 md:gap-3">
           <div className="flex gap-1">
             {TYPES.map((t) => (
               <button
@@ -115,7 +115,7 @@ export default function Reports() {
 
       {data && (
         <>
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat label="总产量" value={String(data.total_quantity)} />
             <Stat label="总销售额" value={`¥${data.total_revenue}`} />
             <Stat label="总毛利" value={`¥${data.total_gross_profit}`} highlight />
@@ -147,7 +147,7 @@ export default function Reports() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
               <div className="px-4 py-2 bg-slate-50 text-sm font-medium">品类明细</div>
               <table className="w-full text-sm">

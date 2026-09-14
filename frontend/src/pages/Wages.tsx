@@ -22,10 +22,10 @@ export default function Wages() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">工资查询</h1>
+    <div className="p-4 md:p-6">
+      <h1 className="text-lg md:text-xl font-bold mb-4">工资查询</h1>
 
-      <div className="flex items-end gap-3 mb-4 bg-white p-4 rounded-lg border border-slate-200">
+      <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 bg-white p-4 rounded-lg border border-slate-200">
         <label className="text-sm">
           <span className="block text-slate-600 mb-1">开始日期</span>
           <input
@@ -57,13 +57,14 @@ export default function Wages() {
 
       {data && (
         <>
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <Stat label="查询区间" value={data.period} />
-            <Stat label="总工时 (小时)" value={String(data.total_hours)} />
-            <Stat label="总工资 (元)" value={`¥${data.total_wages}`} highlight />
+          <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+            <Stat label="区间" value={data.period} />
+            <Stat label="总工时" value={`${data.total_hours}h`} />
+            <Stat label="总工资" value={`¥${data.total_wages}`} highlight />
           </div>
 
-          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          {/* 桌面：表格 */}
+          <div className="hidden md:block bg-white rounded-lg border border-slate-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
@@ -92,6 +93,23 @@ export default function Wages() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 移动端：卡片 */}
+          <div className="md:hidden space-y-2">
+            {data.workers.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-sm">该区间暂无工时</div>
+            ) : (
+              data.workers.map((w) => (
+                <div key={w.worker_id} className="bg-white rounded-lg border border-slate-200 p-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-sm">{w.name}</div>
+                    <div className="text-xs text-slate-500">{w.role} · {w.hours}h · ¥{w.hourly_rate}/h</div>
+                  </div>
+                  <div className="text-base font-bold text-emerald-600">¥{w.wage}</div>
+                </div>
+              ))
+            )}
           </div>
         </>
       )}

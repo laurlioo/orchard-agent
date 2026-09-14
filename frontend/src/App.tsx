@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
+import RequireAuth from './components/RequireAuth'
+import Login from './pages/Login'
 import Workers from './pages/Workers'
 import WorkLogs from './pages/WorkLogs'
 import Production from './pages/Production'
@@ -10,7 +12,15 @@ import Issues from './pages/Issues'
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        }
+      >
         <Route index element={<Navigate to="/worklogs" replace />} />
         <Route path="workers" element={<Workers />} />
         <Route path="worklogs" element={<WorkLogs />} />
@@ -19,6 +29,7 @@ export default function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="issues" element={<Issues />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

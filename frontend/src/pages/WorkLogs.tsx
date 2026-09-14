@@ -40,9 +40,9 @@ export default function WorkLogs() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4 gap-3">
-        <h1 className="text-xl font-bold">每日工时</h1>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+        <h1 className="text-lg md:text-xl font-bold">每日工时</h1>
         <div className="flex items-center gap-2">
           <input
             type="date"
@@ -54,12 +54,13 @@ export default function WorkLogs() {
             onClick={() => setAdding(true)}
             className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
           >
-            <Plus size={16} /> 录入工时
+            <Plus size={16} /> 录入
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      {/* 桌面：表格 */}
+      <div className="hidden md:block bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
@@ -102,9 +103,45 @@ export default function WorkLogs() {
         </table>
       </div>
 
+      {/* 移动端：卡片 */}
+      <div className="md:hidden space-y-2">
+        {list.length === 0 ? (
+          <div className="text-center py-6 text-slate-400 text-sm">该日暂无工时记录</div>
+        ) : (
+          list.map((l) => (
+            <div key={l.id} className="bg-white rounded-lg border border-slate-200 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-sm">{l.worker?.name ?? `#${l.worker_id}`}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    {l.worker?.role ?? '-'} · {l.hours}h
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('删除这条记录?')) {
+                      await WorkLogsApi.remove(l.id)
+                      load()
+                    }
+                  }}
+                  className="text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              {l.task_desc && (
+                <div className="text-xs text-slate-600 mt-2 pt-2 border-t border-slate-100">
+                  {l.task_desc}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
       {adding && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40" onClick={() => setAdding(false)}>
-          <div className="bg-white p-5 rounded-lg w-96" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={() => setAdding(false)}>
+          <div className="bg-white p-5 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold mb-4">录入工时 ({date})</h2>
             <div className="space-y-3">
               <label className="block text-sm">

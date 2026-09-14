@@ -3,21 +3,80 @@ import axios from 'axios'
 // 后端地址：本地开发用 localhost，部署到 Vercel 时通过 VITE_API_BASE_URL 指定
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
+// ---------- Token 管理 ----------
+const TOKEN_KEY = 'orchard_token'
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
 const http = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+})
+
+// 请求拦截：自动带上 Authorization header
+http.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 // ---------- 通用 ----------
 http.interceptors.response.use(
   (r) => r,
   (e) => {
+    // 401: token 失效或未登录，清理并跳转登录页
+    if (e?.response?.status === 401) {
+      clearToken()
+      // 避免登录页自身循环
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
     const msg = e?.response?.data?.detail || e?.message || '请求失败'
     return Promise.reject(new Error(msg))
   },
 )
 
 export default http
+
+// ---------- Auth ----------
+
+export interface AuthUser {
+  id: number
+  username: string
+  role: string
+  created_at: string
+}
+
+export interface LoginResponse {
+  access_token: string
+  token_type: string
+  role: string
+  username: string
+}
+
+export const AuthApi = {
+  status: () => http.get<{ initialized: boolean }>('/auth/status').then((r) => r.data),
+  setup: (username: string, password: string) =>
+    http.post<LoginResponse>('/auth/setup', { username, password }).then((r) => r.data),
+  login: (username: string, password: string) =>
+    http.post<LoginResponse>('/auth/login', { username, password }).then((r) => r.data),
+  me: () => http.get<AuthUser>('/auth/me').then((r) => r.data),
+  register: (data: { username: string; password: string; role: string }) =>
+    http.post<AuthUser>('/auth/register', data).then((r) => r.data),
+}
 
 // ---------- 类型 ----------
 export interface Worker {
@@ -174,10 +233,14 @@ export const WagesApi = {
 export const ReportsApi = {
   get: (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) =>
     http.get<ReportData>('/reports', { params }).then((r) => r.data),
-  exportUrl: (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) =>
-    `${API_BASE_URL}/reports/export?${new URLSearchParams(
+  exportUrl: (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) => {
+    const qs = new URLSearchParams(
       Object.entries(params).map(([k, v]) => [k, String(v)]),
-    ).toString()}`,
+    ).toString()
+    const token = getToken()
+    const authParam = token ? `&token=${encodeURIComponent(token)}` : ''
+    return `${API_BASE_URL}/reports/export?${qs}${authParam}`
+  },
 }
 
 // ---------- Agent chat（SSE 流式） ----------
@@ -196,9 +259,13 @@ export async function chatWithAgent(
   cb: ChatStreamCallbacks,
   signal?: AbortSignal,
 ) {
+  const token = getToken()
   const res = await fetch(`${API_BASE_URL}/agent/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ message, history }),
     signal,
   })
