@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pencil } from 'lucide-react'
-import { WorkersApi, type Worker } from '../api/client'
+import { WorkersApi, isAdmin, type Worker } from '../api/client'
 
 export default function Workers() {
+  const admin = isAdmin()
   const [list, setList] = useState<Worker[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Partial<Worker> | null>(null)
@@ -41,12 +42,14 @@ export default function Workers() {
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg md:text-xl font-bold">工人管理</h1>
-        <button
-          onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, overtime_rate: 1.5, active: true })}
-          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
-        >
-          <Plus size={16} /> 新增
-        </button>
+        {admin && (
+          <button
+            onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, overtime_rate: 1.5, active: true })}
+            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+          >
+            <Plus size={16} /> 新增
+          </button>
+        )}
       </div>
 
       {/* 桌面：表格 */}
@@ -60,17 +63,17 @@ export default function Workers() {
               <th className="px-4 py-2 text-left">时薪</th>
               <th className="px-4 py-2 text-left">加班倍数</th>
               <th className="px-4 py-2 text-left">状态</th>
-              <th className="px-4 py-2 text-left">操作</th>
+              {admin && <th className="px-4 py-2 text-left">操作</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">加载中...</td>
+                <td colSpan={admin ? 7 : 6} className="text-center py-6 text-slate-400">加载中...</td>
               </tr>
             ) : list.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">暂无工人，点击右上角新增</td>
+                <td colSpan={admin ? 7 : 6} className="text-center py-6 text-slate-400">暂无工人，点击右上角新增</td>
               </tr>
             ) : (
               list.map((w) => (
@@ -89,22 +92,28 @@ export default function Workers() {
                       {w.active ? '在岗' : '停用'}
                     </span>
                   </td>
-                  <td className="px-4 py-2 flex gap-2">
-                    <button onClick={() => setEditing(w)} className="text-slate-500 hover:text-emerald-600">
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (confirm(`删除 ${w.name}?`)) {
-                          await WorkersApi.remove(w.id)
-                          load()
-                        }
-                      }}
-                      className="text-slate-500 hover:text-red-500"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
+                  {admin && (
+                    <td className="px-4 py-2 flex gap-2">
+                      <button onClick={() => setEditing(w)} className="text-slate-500 hover:text-emerald-600">
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`删除 ${w.name}?`)) {
+                            try {
+                              await WorkersApi.remove(w.id)
+                              load()
+                            } catch (e: any) {
+                              alert(e.message)
+                            }
+                          }
+                        }}
+                        className="text-slate-500 hover:text-red-500"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -136,25 +145,31 @@ export default function Workers() {
                   {w.active ? '在岗' : '停用'}
                 </span>
               </div>
-              <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => setEditing(w)}
-                  className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 border border-slate-200 rounded"
-                >
-                  <Pencil size={12} /> 编辑
-                </button>
-                <button
-                  onClick={async () => {
-                    if (confirm(`删除 ${w.name}?`)) {
-                      await WorkersApi.remove(w.id)
-                      load()
-                    }
-                  }}
-                  className="flex items-center gap-1 text-xs text-red-500 px-2 py-1 border border-slate-200 rounded"
-                >
-                  <Trash2 size={12} /> 删除
-                </button>
-              </div>
+              {admin && (
+                <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => setEditing(w)}
+                    className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 border border-slate-200 rounded"
+                  >
+                    <Pencil size={12} /> 编辑
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (confirm(`删除 ${w.name}?`)) {
+                        try {
+                          await WorkersApi.remove(w.id)
+                          load()
+                        } catch (e: any) {
+                          alert(e.message)
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs text-red-500 px-2 py-1 border border-slate-200 rounded"
+                  >
+                    <Trash2 size={12} /> 删除
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

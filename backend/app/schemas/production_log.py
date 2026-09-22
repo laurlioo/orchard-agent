@@ -17,7 +17,7 @@ class ProductionLogCreate(ProductionLogBase):
 
 
 class ProductionLogUpdate(BaseModel):
-    quantity: float | None = None
+    quantity: float | None = Field(None, gt=0)
     notes: str | None = None
 
 

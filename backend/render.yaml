@@ -17,6 +17,10 @@ services:
         value: https://api.deepseek.com
       - key: DEEPSEEK_MODEL
         value: deepseek-chat
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
       - key: CORS_ORIGINS
         value: https://orchard-agent-omega.vercel.app
       - key: DATABASE_URL

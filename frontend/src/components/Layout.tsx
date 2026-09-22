@@ -13,9 +13,9 @@ import {
   LogOut,
 } from 'lucide-react'
 import ChatPanel from './ChatPanel'
-import { clearToken } from '../api/client'
+import { clearToken, getRole, getUsername, isWorker } from '../api/client'
 
-const NAV = [
+const STAFF_NAV = [
   { to: '/workers', label: '工人管理', icon: Users },
   { to: '/worklogs', label: '每日工时', icon: ClipboardList },
   { to: '/production', label: '每日产量', icon: Apple },
@@ -24,10 +24,13 @@ const NAV = [
   { to: '/issues', label: '问题工单', icon: AlertTriangle },
 ]
 
+const WORKER_NAV = [{ to: '/me', label: '我的工时工资', icon: Wallet }]
+
 export default function Layout() {
   const [chatOpen, setChatOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const worker = isWorker()
 
   const logout = () => {
     clearToken()
@@ -66,7 +69,7 @@ export default function Layout() {
           <button onClick={() => setMenuOpen(true)} className="p-1">
             <Menu size={22} />
           </button>
-          <span className="text-sm font-medium">果园 Agent</span>
+          <span className="text-sm font-medium">{worker ? '我的工时工资' : '果园 Agent'}</span>
           <button onClick={logout} className="p-1">
             <LogOut size={18} />
           </button>
@@ -77,8 +80,8 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* 浮动聊天按钮 */}
-      {!chatOpen && (
+      {/* 浮动聊天按钮：仅管理人员可见 */}
+      {!worker && !chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
           className="fixed bottom-5 right-5 w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition z-30"
@@ -88,7 +91,7 @@ export default function Layout() {
         </button>
       )}
 
-      {chatOpen && (
+      {!worker && chatOpen && (
         <div className="fixed bottom-0 right-0 left-0 md:bottom-6 md:right-6 md:left-auto md:w-96 h-[70vh] md:h-[32rem] bg-white shadow-2xl border border-slate-200 flex flex-col z-50 rounded-t-lg md:rounded-lg">
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white rounded-t-lg">
             <div className="flex items-center gap-2">
@@ -129,7 +132,10 @@ function SidebarContent({
       <div className="px-4 py-5 border-b border-slate-700 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold">果园 Agent</h1>
-          <p className="text-xs text-slate-400 mt-0.5">运营助手</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {getUsername() || '运营助手'} ·{' '}
+            {getRole() === 'admin' ? '管理员' : getRole() === 'worker' ? '工人' : '只读'}
+          </p>
         </div>
         {showClose && (
           <button onClick={onClose} className="text-slate-400 hover:text-white">
@@ -138,7 +144,7 @@ function SidebarContent({
         )}
       </div>
       <nav className="flex-1 py-3">
-        {NAV.map(({ to, label, icon: Icon }) => (
+        {(isWorker() ? WORKER_NAV : STAFF_NAV).map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

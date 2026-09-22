@@ -8,6 +8,10 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=100)
 
 
+class WorkerLoginRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6, max_length=100)
@@ -19,6 +23,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     role: str
     username: str
+    worker_id: int | None = None
 
 
 class UserOut(BaseModel):

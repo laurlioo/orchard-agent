@@ -9,26 +9,30 @@
   - {"type": "error", "message": "..."}
 """
 import json
-from datetime import date
 from typing import AsyncIterator
 
 from sqlalchemy.orm import Session
 
 from app.agent import deepseek_client
-from app.agent.tools import EXECUTORS, SYSTEM_PROMPT, TOOLS
+from app.agent.tools import EXECUTORS, WRITE_TOOLS, system_prompt, TOOLS
 from app.core.config import settings
 
 MAX_ITERATIONS = 6  # 防止 Agent 死循环
 
 
-async def run(message: str, history: list[dict], db: Session) -> AsyncIterator[dict]:
+async def run(
+    message: str,
+    history: list[dict],
+    db: Session,
+    user_role: str = "viewer",
+) -> AsyncIterator[dict]:
     """主入口：跑 Agent 循环，yield 事件。"""
     if not settings.DEEPSEEK_API_KEY:
         yield {"type": "error", "message": "未配置 DEEPSEEK_API_KEY，请先在 .env 中填入。"}
         return
 
     # 组装消息列表
-    sys_msg = {"role": "system", "content": SYSTEM_PROMPT + f"\n当前日期：{date.today()}"}
+    sys_msg = {"role": "system", "content": system_prompt()}
     msgs: list[dict] = [sys_msg] + list(history) + [{"role": "user", "content": message}]
 
     try:
@@ -69,11 +73,14 @@ async def run(message: str, history: list[dict], db: Session) -> AsyncIterator[d
                     args = {}
                 yield {"type": "tool_call", "name": name, "args": args}
                 try:
-                    executor = EXECUTORS.get(name)
-                    if executor is None:
-                        result = f"未知工具：{name}"
+                    if user_role != "admin" and name in WRITE_TOOLS:
+                        result = "当前账号为只读，无法执行写操作。请联系管理员。"
                     else:
-                        result = executor(db, args)
+                        executor = EXECUTORS.get(name)
+                        if executor is None:
+                            result = f"未知工具：{name}"
+                        else:
+                            result = executor(db, args)
                 except Exception as e:
                     result = f"工具执行失败：{e}"
                 yield {"type": "tool_result", "name": name, "result": result}

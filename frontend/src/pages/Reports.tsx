@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { Download, FileBarChart } from 'lucide-react'
-import { ReportsApi, type ReportData } from '../api/client'
+import { ReportsApi, localDateISO, type ReportData } from '../api/client'
 
 const TYPES = [
   { key: 'daily', label: '日报' },
@@ -10,26 +10,33 @@ const TYPES = [
 ]
 
 export default function Reports() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateISO()
   const [type, setType] = useState('daily')
   const [start, setStart] = useState(today)
   const [end, setEnd] = useState(today)
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const paramsFor = () => {
+    const params: { report_type: string; start: string; end?: string } = { report_type: type, start }
+    if (type !== 'daily') params.end = end
+    return params
+  }
 
   const gen = async () => {
     setLoading(true)
     setError('')
     try {
-      const params: any = { report_type: type, with_summary: true }
-      if (type === 'daily') {
-        params.start = start
-      } else {
-        params.start = start
-        params.end = end
-      }
-      setData(await ReportsApi.get(params))
+      const params = paramsFor()
+      const report = await ReportsApi.get(params)
+      setData(report)
+      setSummaryLoading(true)
+      ReportsApi.summary(params)
+        .then((s) => setData((prev) => (prev ? { ...prev, summary: s.summary } : prev)))
+        .catch(() => {})
+        .finally(() => setSummaryLoading(false))
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -37,15 +44,12 @@ export default function Reports() {
     }
   }
 
-  const download = () => {
-    const params: any = { report_type: type, with_summary: true }
-    if (type === 'daily') {
-      params.start = start
-    } else {
-      params.start = start
-      params.end = end
+  const download = async () => {
+    try {
+      await ReportsApi.export({ ...paramsFor(), with_summary: Boolean(data?.summary) })
+    } catch (e: any) {
+      setError(e.message)
     }
-    window.open(ReportsApi.exportUrl(params), '_blank')
   }
 
   const chartData = data?.categories.map((c) => ({
@@ -98,7 +102,7 @@ export default function Reports() {
             disabled={loading}
             className="px-4 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600 disabled:opacity-50"
           >
-            {loading ? '生成中（含 AI 摘要，稍候）...' : '生成报表'}
+            {loading ? '生成中...' : '生成报表'}
           </button>
           {data && (
             <button
@@ -124,14 +128,18 @@ export default function Reports() {
             <Stat label="总工资" value={`¥${data.total_wages}`} />
           </div>
 
-          {data.summary && (
+          {data.summary ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2">
                 <FileBarChart size={16} /> AI 摘要
               </div>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.summary}</p>
             </div>
-          )}
+          ) : summaryLoading ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4 text-sm text-emerald-700">
+              AI 摘要生成中...
+            </div>
+          ) : null}
 
           {chartData.length > 0 && (
             <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4">
@@ -140,10 +148,12 @@ export default function Reports() {
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis yAxisId="qty" />
+                  <YAxis yAxisId="profit" orientation="right" />
                   <Tooltip />
-                  <Bar dataKey="产量" fill="#10b981" />
-                  <Bar dataKey="毛利" fill="#6366f1" />
+                  <Legend />
+                  <Bar yAxisId="qty" dataKey="产量" fill="#10b981" />
+                  <Bar yAxisId="profit" dataKey="毛利" fill="#6366f1" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

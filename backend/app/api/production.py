@@ -1,9 +1,13 @@
 """产量记录 + 品类 CRUD。"""
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.core.security import require_admin
+from app.models.user import User
 from app.models.product import ProductCategory
 from app.models.production_log import ProductionLog
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
@@ -13,7 +17,6 @@ from app.schemas.production_log import (
     ProductionLogUpdate,
 )
 
-# ---- 品类 ----
 cat_router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -23,7 +26,11 @@ def list_products(db: Session = Depends(get_db)):
 
 
 @cat_router.post("", response_model=ProductOut, status_code=201)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
+def create_product(
+    payload: ProductCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     p = ProductCategory(**payload.model_dump())
     db.add(p)
     db.commit()
@@ -32,10 +39,15 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
 
 
 @cat_router.patch("/{pid}", response_model=ProductOut)
-def update_product(pid: int, payload: ProductUpdate, db: Session = Depends(get_db)):
+def update_product(
+    pid: int,
+    payload: ProductUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     p = db.get(ProductCategory, pid)
     if not p:
-        raise HTTPException(404, "product not found")
+        raise HTTPException(404, "品类不存在")
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(p, k, v)
     db.commit()
@@ -44,15 +56,21 @@ def update_product(pid: int, payload: ProductUpdate, db: Session = Depends(get_d
 
 
 @cat_router.delete("/{pid}", status_code=204)
-def delete_product(pid: int, db: Session = Depends(get_db)):
+def delete_product(
+    pid: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     p = db.get(ProductCategory, pid)
     if not p:
-        raise HTTPException(404, "product not found")
+        raise HTTPException(404, "品类不存在")
+    n = db.query(ProductionLog).filter(ProductionLog.category_id == pid).count()
+    if n:
+        raise HTTPException(400, f"该品类还有 {n} 条产量记录，无法删除")
     db.delete(p)
     db.commit()
 
 
-# ---- 产量记录 ----
 log_router = APIRouter(prefix="/production-logs", tags=["production-logs"])
 
 
@@ -63,7 +81,7 @@ def list_production_logs(
     category_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    q = db.query(ProductionLog)
+    q = db.query(ProductionLog).options(joinedload(ProductionLog.category))
     if start:
         q = q.filter(ProductionLog.date >= start)
     if end:
@@ -74,19 +92,42 @@ def list_production_logs(
 
 
 @log_router.post("", response_model=ProductionLogOut, status_code=201)
-def create_production_log(payload: ProductionLogCreate, db: Session = Depends(get_db)):
+def create_production_log(
+    payload: ProductionLogCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    cat = db.get(ProductCategory, payload.category_id)
+    if not cat:
+        raise HTTPException(404, "品类不存在")
+    exists = (
+        db.query(ProductionLog)
+        .filter(ProductionLog.category_id == payload.category_id, ProductionLog.date == payload.date)
+        .first()
+    )
+    if exists:
+        raise HTTPException(400, "该品类当日已有产量，请直接编辑原记录")
     log = ProductionLog(**payload.model_dump())
     db.add(log)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(400, "该品类当日已有产量，请直接编辑原记录")
     db.refresh(log)
     return log
 
 
 @log_router.patch("/{log_id}", response_model=ProductionLogOut)
-def update_production_log(log_id: int, payload: ProductionLogUpdate, db: Session = Depends(get_db)):
+def update_production_log(
+    log_id: int,
+    payload: ProductionLogUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     log = db.get(ProductionLog, log_id)
     if not log:
-        raise HTTPException(404, "production log not found")
+        raise HTTPException(404, "产量记录不存在")
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(log, k, v)
     db.commit()
@@ -95,9 +136,13 @@ def update_production_log(log_id: int, payload: ProductionLogUpdate, db: Session
 
 
 @log_router.delete("/{log_id}", status_code=204)
-def delete_production_log(log_id: int, db: Session = Depends(get_db)):
+def delete_production_log(
+    log_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     log = db.get(ProductionLog, log_id)
     if not log:
-        raise HTTPException(404, "production log not found")
+        raise HTTPException(404, "产量记录不存在")
     db.delete(log)
     db.commit()

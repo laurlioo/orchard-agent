@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { WagesApi, type WageSummary } from '../api/client'
+import { WagesApi, localDateISO, type WageSummary } from '../api/client'
 
 export default function Wages() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateISO()
   const [start, setStart] = useState(today)
   const [end, setEnd] = useState(today)
   const [data, setData] = useState<WageSummary | null>(null)

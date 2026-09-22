@@ -48,6 +48,8 @@ Render 支持 Python 持续运行，免费额度够个人用。
    | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` |
    | `DEEPSEEK_MODEL` | `deepseek-chat` |
    | `CORS_ORIGINS` | 先填 `*`，后面拿到 Vercel 域名后再改 |
+   | `APP_ENV` | `production` |
+   | `JWT_SECRET` | 一串长随机密钥（必填，不能用默认值） |
    | `DB_PATH` | `./orchard.db` |
 6. 点 **Create Web Service**，等 2-3 分钟构建完成
 7. 记下 Render 给你的域名，比如 `https://orchard-agent-backend.onrender.com`

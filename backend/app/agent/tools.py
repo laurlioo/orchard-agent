@@ -15,7 +15,6 @@ from app.models.production_log import ProductionLog
 from app.models.work_log import WorkLog
 from app.models.worker import Worker
 from app.services.report_builder import build_report
-from app.services.summary_writer import write_summary
 from app.services.wage_calculator import calc_wages
 
 
@@ -102,7 +101,6 @@ def _generate_report(db: Session, args: dict) -> str:
         s = e = _d(args.get("start"))
     report = build_report(db, s, e)
     report.report_type = report_type
-    report.summary = write_summary(report)
     return _json(report.model_dump())
 
 
@@ -195,7 +193,7 @@ TOOLS: list[dict] = [
         "type": "function",
         "function": {
             "name": "generate_report",
-            "description": "生成日/周/月报。返回聚合数据（产量/毛利/工时/工资）+ AI 文字摘要。",
+            "description": "生成日/周/月报。返回聚合数据（产量/毛利/工时/工资），不含 AI 摘要。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -256,13 +254,17 @@ EXECUTORS: dict[str, Callable[[Session, dict], str]] = {
 }
 
 
-SYSTEM_PROMPT = """你是果园运营助理，帮助用户处理日常果园管理工作。
+WRITE_TOOLS = {"create_issue"}
+
+
+def system_prompt() -> str:
+    return f"""你是果园运营助理，帮助用户处理日常果园管理工作。
 
 你可以做：
 - 查询工人、工时、产量
-- 计算工人工资（按工时×时薪）
-- 生成日报/周报/月报（产量、毛利、工资、AI 摘要）
-- 登记与查询问题工单（果农/管理层上报的种植养护问题）
+- 计算工人工资（按工时×时薪，工时记录上会保留录入时的时薪快照）
+- 生成日报/周报/月报（产量、毛利、工资）
+- 登记与查询问题工单（仅管理员可登记）
 
 请用简洁的中文回答；涉及数字时给出结构化要点；遇到模糊时间（"今天"）请用当前日期工具调用。
-当前日期：{today}。""".format(today=date.today())
+当前日期：{date.today()}。"""

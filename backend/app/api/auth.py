@@ -1,7 +1,5 @@
-"""认证路由：登录 / 注册（仅 admin） / 当前用户。"""
-import os
-
-from fastapi import APIRouter, Depends, HTTPException
+"""认证路由：管理员登录 / 工人按姓名登录 / 注册 / 当前用户。"""
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,7 +11,14 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserOut
+from app.models.worker import Worker
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserOut,
+    WorkerLoginRequest,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -23,8 +28,30 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     u = db.query(User).filter(User.username == payload.username).first()
     if not u or not verify_password(payload.password, u.password_hash):
         raise HTTPException(401, "用户名或密码错误")
-    token = create_token(u.id, u.username, u.role)
+    token = create_token(u.id, u.username, u.role, kind="staff")
     return TokenResponse(access_token=token, role=u.role, username=u.username)
+
+
+@router.post("/worker-login", response_model=TokenResponse)
+def worker_login(payload: WorkerLoginRequest, db: Session = Depends(get_db)):
+    """工人用档案姓名登录，只能查看本人的工时和工资。"""
+    name = payload.name.strip()
+    rows = db.query(Worker).filter(Worker.name == name).all()
+    if not rows:
+        raise HTTPException(401, "未找到该姓名，请与档案上的姓名完全一致")
+    active = [w for w in rows if w.active]
+    if not active:
+        raise HTTPException(401, "该工人已停用，请联系管理员")
+    if len(active) > 1:
+        raise HTTPException(400, "存在同名在职工人，请联系管理员处理后再登录")
+    w = active[0]
+    token = create_token(w.id, w.name, "worker", kind="worker")
+    return TokenResponse(
+        access_token=token,
+        role="worker",
+        username=w.name,
+        worker_id=w.id,
+    )
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
@@ -47,17 +74,28 @@ def register(
     return u
 
 
-@router.get("/me", response_model=UserOut)
-def me(current: User = Depends(get_current_user)):
+@router.get("/me")
+def me(request: Request, db: Session = Depends(get_db)):
+    role = getattr(request.state, "user_role", "")
+    uid = getattr(request.state, "user_id", 0)
+    if role == "worker":
+        w = db.get(Worker, uid)
+        if not w:
+            raise HTTPException(401, "工人不存在或已删除")
+        return {
+            "id": w.id,
+            "username": w.name,
+            "role": "worker",
+            "worker_id": w.id,
+            "created_at": w.created_at,
+        }
+    current = get_current_user(request, db)
     return current
 
 
 @router.post("/setup", response_model=TokenResponse)
 def setup_initial_admin(payload: LoginRequest, db: Session = Depends(get_db)):
-    """首次初始化管理员账号：仅在 users 表为空时可用，防止被滥用。
-
-    前端首次访问会检测 /auth/setup 状态，如果需要初始化则引导设置管理员。
-    """
+    """首次初始化管理员账号：仅在 users 表为空时可用。"""
     if db.query(User).count() > 0:
         raise HTTPException(400, "管理员已存在，请联系管理员分配账号")
     u = User(
@@ -68,7 +106,7 @@ def setup_initial_admin(payload: LoginRequest, db: Session = Depends(get_db)):
     db.add(u)
     db.commit()
     db.refresh(u)
-    token = create_token(u.id, u.username, u.role)
+    token = create_token(u.id, u.username, u.role, kind="staff")
     return TokenResponse(access_token=token, role=u.role, username=u.username)
 
 

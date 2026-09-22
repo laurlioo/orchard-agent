@@ -15,7 +15,7 @@ class IssueCreate(IssueBase):
 
 
 class IssueUpdate(BaseModel):
-    status: str | None = None
+    status: str | None = Field(None, pattern="^(open|closed)$")
     assignee: str | None = None
     reply: str | None = None
 

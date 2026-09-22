@@ -8,11 +8,11 @@ from fastapi import Depends, HTTPException, Request
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 
-# 配置
-JWT_SECRET = os.getenv("JWT_SECRET", "orchard-agent-secret-change-me-in-prod")
+JWT_SECRET = settings.JWT_SECRET
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "72"))
 
@@ -28,12 +28,13 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_ctx.verify(plain, hashed)
 
 
-def create_token(user_id: int, username: str, role: str) -> str:
+def create_token(user_id: int, username: str, role: str, kind: str = "staff") -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "username": username,
         "role": role,
+        "kind": kind,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(hours=JWT_EXPIRE_HOURS)).timestamp()),
     }

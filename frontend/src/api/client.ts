@@ -1,13 +1,46 @@
 import axios from 'axios'
 
-// 后端地址：本地开发用 localhost，部署到 Vercel 时通过 VITE_API_BASE_URL 指定
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-// ---------- Token 管理 ----------
 const TOKEN_KEY = 'orchard_token'
+const ROLE_KEY = 'orchard_role'
+const USER_KEY = 'orchard_username'
+
+export function localDateISO(d = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
+}
+
+export function getRole(): string {
+  return localStorage.getItem(ROLE_KEY) || 'viewer'
+}
+
+export function getUsername(): string {
+  return localStorage.getItem(USER_KEY) || ''
+}
+
+export function isAdmin(): boolean {
+  return getRole() === 'admin'
+}
+
+export function isWorker(): boolean {
+  return getRole() === 'worker'
+}
+
+export function homePath(): string {
+  return isWorker() ? '/me' : '/worklogs'
+}
+
+export function setSession(token: string, role: string, username: string) {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(ROLE_KEY, role)
+  localStorage.setItem(USER_KEY, username)
 }
 
 export function setToken(token: string) {
@@ -16,6 +49,8 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(ROLE_KEY)
+  localStorage.removeItem(USER_KEY)
 }
 
 const http = axios.create({
@@ -65,6 +100,7 @@ export interface LoginResponse {
   token_type: string
   role: string
   username: string
+  worker_id?: number | null
 }
 
 export const AuthApi = {
@@ -73,6 +109,8 @@ export const AuthApi = {
     http.post<LoginResponse>('/auth/setup', { username, password }).then((r) => r.data),
   login: (username: string, password: string) =>
     http.post<LoginResponse>('/auth/login', { username, password }).then((r) => r.data),
+  workerLogin: (name: string) =>
+    http.post<LoginResponse>('/auth/worker-login', { name }).then((r) => r.data),
   me: () => http.get<AuthUser>('/auth/me').then((r) => r.data),
   register: (data: { username: string; password: string; role: string }) =>
     http.post<AuthUser>('/auth/register', data).then((r) => r.data),
@@ -106,6 +144,8 @@ export interface WorkLog {
   hours: number  // 正常工时
   overtime_hours: number  // 加班工时
   task_desc: string
+  hourly_rate?: number | null
+  overtime_rate?: number | null
   created_at: string
   worker?: Worker
 }
@@ -243,15 +283,25 @@ export const WagesApi = {
 }
 
 export const ReportsApi = {
-  get: (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) =>
+  get: (params: { report_type?: string; start?: string; end?: string }) =>
     http.get<ReportData>('/reports', { params }).then((r) => r.data),
-  exportUrl: (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) => {
-    const qs = new URLSearchParams(
-      Object.entries(params).map(([k, v]) => [k, String(v)]),
-    ).toString()
-    const token = getToken()
-    const authParam = token ? `&token=${encodeURIComponent(token)}` : ''
-    return `${API_BASE_URL}/reports/export?${qs}${authParam}`
+  summary: (params: { report_type?: string; start?: string; end?: string }) =>
+    http.get<{ summary: string }>('/reports/summary', { params }).then((r) => r.data),
+  export: async (params: { report_type?: string; start?: string; end?: string; with_summary?: boolean }) => {
+    const res = await http.get('/reports/export', {
+      params,
+      responseType: 'blob',
+    })
+    const start = params.start || 'report'
+    const end = params.end || start
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `orchard_report_${start}_${end}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   },
 }
 

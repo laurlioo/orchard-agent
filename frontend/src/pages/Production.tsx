@@ -3,15 +3,18 @@ import { Plus, Trash2 } from 'lucide-react'
 import {
   ProductionLogsApi,
   ProductsApi,
+  isAdmin,
+  localDateISO,
   type ProductionLog,
   type Product,
 } from '../api/client'
 
 export default function Production() {
+  const admin = isAdmin()
   const [tab, setTab] = useState<'logs' | 'categories'>('logs')
   const [logs, setLogs] = useState<ProductionLog[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateISO())
   const [addingLog, setAddingLog] = useState(false)
   const [logForm, setLogForm] = useState<Partial<ProductionLog>>({ category_id: 0, quantity: 0, notes: '' })
   const [addingCat, setAddingCat] = useState(false)
@@ -33,18 +36,32 @@ export default function Production() {
   const submitLog = async () => {
     if (!logForm.category_id) return alert('请选择品类')
     if (!logForm.quantity || logForm.quantity <= 0) return alert('数量必须大于 0')
-    await ProductionLogsApi.create({ ...logForm, date } as any)
-    setAddingLog(false)
-    setLogForm({ category_id: 0, quantity: 0, notes: '' })
-    load()
+    try {
+      const dup = logs.find((l) => l.category_id === logForm.category_id)
+      if (dup) {
+        if (!confirm('该品类当日已有产量，是否改为更新原记录？')) return
+        await ProductionLogsApi.update(dup.id, { quantity: logForm.quantity, notes: logForm.notes })
+      } else {
+        await ProductionLogsApi.create({ ...logForm, date } as any)
+      }
+      setAddingLog(false)
+      setLogForm({ category_id: 0, quantity: 0, notes: '' })
+      load()
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   const submitCat = async () => {
     if (!catForm.name) return alert('品类名必填')
-    await ProductsApi.create(catForm)
-    setAddingCat(false)
-    setCatForm({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
-    load()
+    try {
+      await ProductsApi.create(catForm)
+      setAddingCat(false)
+      setCatForm({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
+      load()
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   return (
@@ -61,20 +78,22 @@ export default function Production() {
             />
           )}
           {tab === 'logs' ? (
-            <button
-              onClick={() => setAddingLog(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
-            >
-              <Plus size={16} /> 录入产量
-            </button>
-          ) : (
+            admin ? (
+              <button
+                onClick={() => setAddingLog(true)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+              >
+                <Plus size={16} /> 录入产量
+              </button>
+            ) : null
+          ) : admin ? (
             <button
               onClick={() => setAddingCat(true)}
               className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
             >
               <Plus size={16} /> 新增品类
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -104,13 +123,13 @@ export default function Production() {
                 <th className="px-4 py-2 text-left">数量</th>
                 <th className="px-4 py-2 text-left">单位</th>
                 <th className="px-4 py-2 text-left">备注</th>
-                <th className="px-4 py-2 text-left">操作</th>
+                {admin && <th className="px-4 py-2 text-left">操作</th>}
               </tr>
             </thead>
             <tbody>
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-6 text-slate-400">该日暂无产量</td>
+                  <td colSpan={admin ? 6 : 5} className="text-center py-6 text-slate-400">该日暂无产量</td>
                 </tr>
               ) : (
                 logs.map((l) => (
@@ -120,19 +139,25 @@ export default function Production() {
                     <td className="px-4 py-2">{l.quantity}</td>
                     <td className="px-4 py-2 text-slate-600">{l.category?.unit ?? '-'}</td>
                     <td className="px-4 py-2 text-slate-600">{l.notes || '-'}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={async () => {
-                          if (confirm('删除?')) {
-                            await ProductionLogsApi.remove(l.id)
-                            load()
-                          }
-                        }}
-                        className="text-slate-500 hover:text-red-500"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
+                    {admin && (
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={async () => {
+                            if (confirm('删除?')) {
+                              try {
+                                await ProductionLogsApi.remove(l.id)
+                                load()
+                              } catch (e: any) {
+                                alert(e.message)
+                              }
+                            }
+                          }}
+                          className="text-slate-500 hover:text-red-500"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -147,7 +172,7 @@ export default function Production() {
                 <th className="px-4 py-2 text-left">售价</th>
                 <th className="px-4 py-2 text-left">单位成本</th>
                 <th className="px-4 py-2 text-left">单位毛利</th>
-                <th className="px-4 py-2 text-left">操作</th>
+                {admin && <th className="px-4 py-2 text-left">操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -163,19 +188,25 @@ export default function Production() {
                     <td className="px-4 py-2">¥{p.unit_price}</td>
                     <td className="px-4 py-2">¥{p.cost_per_unit}</td>
                     <td className="px-4 py-2 text-emerald-600">¥{(p.unit_price - p.cost_per_unit).toFixed(2)}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={async () => {
-                          if (confirm('删除该品类?')) {
-                            await ProductsApi.remove(p.id)
-                            load()
-                          }
-                        }}
-                        className="text-slate-500 hover:text-red-500"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
+                    {admin && (
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={async () => {
+                            if (confirm('删除该品类?')) {
+                              try {
+                                await ProductsApi.remove(p.id)
+                                load()
+                              } catch (e: any) {
+                                alert(e.message)
+                              }
+                            }
+                          }}
+                          className="text-slate-500 hover:text-red-500"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -199,17 +230,23 @@ export default function Production() {
                   </div>
                   {l.notes && <div className="text-xs text-slate-600 mt-1">{l.notes}</div>}
                 </div>
-                <button
-                  onClick={async () => {
-                    if (confirm('删除?')) {
-                      await ProductionLogsApi.remove(l.id)
-                      load()
-                    }
-                  }}
-                  className="text-red-500"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {admin && (
+                  <button
+                    onClick={async () => {
+                      if (confirm('删除?')) {
+                        try {
+                          await ProductionLogsApi.remove(l.id)
+                          load()
+                        } catch (e: any) {
+                          alert(e.message)
+                        }
+                      }
+                    }}
+                    className="text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))
           )
@@ -228,17 +265,23 @@ export default function Production() {
                 <span className="text-xs text-emerald-600 font-medium">
                   毛利 ¥{(p.unit_price - p.cost_per_unit).toFixed(2)}
                 </span>
-                <button
-                  onClick={async () => {
-                    if (confirm('删除该品类?')) {
-                      await ProductsApi.remove(p.id)
-                      load()
-                    }
-                  }}
-                  className="text-red-500"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {admin && (
+                  <button
+                    onClick={async () => {
+                      if (confirm('删除该品类?')) {
+                        try {
+                          await ProductsApi.remove(p.id)
+                          load()
+                        } catch (e: any) {
+                          alert(e.message)
+                        }
+                      }
+                    }}
+                    className="text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             </div>
           ))

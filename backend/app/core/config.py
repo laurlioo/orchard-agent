@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+DEFAULT_JWT_SECRET = "orchard-agent-secret-change-me-in-prod"
+
 
 class Settings:
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
@@ -15,6 +17,10 @@ class Settings:
     # Turso auth token（可选，仅 Turso 模式需要）
     DATABASE_AUTH_TOKEN: str = os.getenv("DATABASE_AUTH_TOKEN", "")
     DB_PATH: str = os.getenv("DB_PATH", "./orchard.db")
+    # development | production；Render 会自动设置 RENDER=true
+    APP_ENV: str = os.getenv("APP_ENV", "development")
+    ENABLE_DOCS: str = os.getenv("ENABLE_DOCS", "")
+    JWT_SECRET: str = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
 
     @property
     def is_turso(self) -> bool:
@@ -45,6 +51,29 @@ class Settings:
             return args
         # 本地 SQLite
         return {"check_same_thread": False}
+
+    @property
+    def is_production(self) -> bool:
+        if self.APP_ENV.lower() == "production":
+            return True
+        return os.getenv("RENDER", "").lower() in ("true", "1")
+
+    @property
+    def docs_enabled(self) -> bool:
+        flag = self.ENABLE_DOCS.lower()
+        if flag in ("1", "true", "yes"):
+            return True
+        if flag in ("0", "false", "no"):
+            return False
+        return not self.is_production
+
+    def assert_secure(self) -> None:
+        """生产环境拒绝默认 JWT 密钥。"""
+        if not self.is_production:
+            return
+        raw = os.getenv("JWT_SECRET", "")
+        if not raw or raw == DEFAULT_JWT_SECRET:
+            raise RuntimeError("生产环境必须设置 JWT_SECRET，且不能使用默认值")
 
 
 settings = Settings()

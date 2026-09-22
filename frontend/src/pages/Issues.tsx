@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Plus, Reply } from 'lucide-react'
-import { IssuesApi, type Issue } from '../api/client'
+import { IssuesApi, isAdmin, type Issue } from '../api/client'
 
 export default function Issues() {
+  const admin = isAdmin()
   const [list, setList] = useState<Issue[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [adding, setAdding] = useState(false)
@@ -32,17 +33,25 @@ export default function Issues() {
 
   const submit = async () => {
     if (!form.reporter_name || !form.content) return alert('上报人和描述必填')
-    await IssuesApi.create(form as any)
-    setAdding(false)
-    setForm({ reporter_name: '', reporter_role: '果农', category: '种植养护', content: '' })
-    load()
+    try {
+      await IssuesApi.create(form as any)
+      setAdding(false)
+      setForm({ reporter_name: '', reporter_role: '果农', category: '种植养护', content: '' })
+      load()
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   const closeIssue = async (i: Issue, newReply: string) => {
-    await IssuesApi.update(i.id, { status: 'closed', reply: newReply || i.reply })
-    setReplying(null)
-    setReply('')
-    load()
+    try {
+      await IssuesApi.update(i.id, { status: 'closed', reply: newReply || i.reply })
+      setReplying(null)
+      setReply('')
+      load()
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   return (
@@ -59,12 +68,14 @@ export default function Issues() {
             <option value="open">待处理</option>
             <option value="closed">已关闭</option>
           </select>
-          <button
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
-          >
-            <Plus size={16} /> 上报问题
-          </button>
+          {admin && (
+            <button
+              onClick={() => setAdding(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+            >
+              <Plus size={16} /> 上报问题
+            </button>
+          )}
         </div>
       </div>
 
@@ -94,7 +105,7 @@ export default function Issues() {
                   </div>
                   <div className="text-xs text-slate-400 mt-0.5">{i.created_at}</div>
                 </div>
-                {i.status === 'open' && (
+                {admin && i.status === 'open' && (
                   <button
                     onClick={() => {
                       setReplying(i)

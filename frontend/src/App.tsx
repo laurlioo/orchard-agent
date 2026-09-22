@@ -8,6 +8,14 @@ import Production from './pages/Production'
 import Wages from './pages/Wages'
 import Reports from './pages/Reports'
 import Issues from './pages/Issues'
+import MyPay from './pages/MyPay'
+import { homePath, isWorker } from './api/client'
+import { type ReactNode } from 'react'
+
+function RequireStaff({ children }: { children: ReactNode }) {
+  if (isWorker()) return <Navigate to="/me" replace />
+  return <>{children}</>
+}
 
 export default function App() {
   return (
@@ -21,13 +29,56 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/worklogs" replace />} />
-        <Route path="workers" element={<Workers />} />
-        <Route path="worklogs" element={<WorkLogs />} />
-        <Route path="production" element={<Production />} />
-        <Route path="wages" element={<Wages />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="issues" element={<Issues />} />
+        <Route index element={<Navigate to={homePath()} replace />} />
+        <Route path="me" element={<MyPay />} />
+        <Route
+          path="workers"
+          element={
+            <RequireStaff>
+              <Workers />
+            </RequireStaff>
+          }
+        />
+        <Route
+          path="worklogs"
+          element={
+            <RequireStaff>
+              <WorkLogs />
+            </RequireStaff>
+          }
+        />
+        <Route
+          path="production"
+          element={
+            <RequireStaff>
+              <Production />
+            </RequireStaff>
+          }
+        />
+        <Route
+          path="wages"
+          element={
+            <RequireStaff>
+              <Wages />
+            </RequireStaff>
+          }
+        />
+        <Route
+          path="reports"
+          element={
+            <RequireStaff>
+              <Reports />
+            </RequireStaff>
+          }
+        />
+        <Route
+          path="issues"
+          element={
+            <RequireStaff>
+              <Issues />
+            </RequireStaff>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
