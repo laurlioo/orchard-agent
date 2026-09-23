@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.core.deps import get_orchard
 from app.core.security import require_admin
 from app.models.user import User
 from app.models.product import ProductCategory
@@ -22,17 +23,23 @@ cat_router = APIRouter(prefix="/products", tags=["products"])
 
 
 @cat_router.get("", response_model=list[ProductOut])
-def list_products(db: Session = Depends(get_db)):
-    return db.query(ProductCategory).order_by(ProductCategory.id).all()
+def list_products(
+    orchard: str = Depends(get_orchard),
+    db: Session = Depends(get_db),
+):
+    return db.query(ProductCategory).filter(ProductCategory.orchard == orchard).order_by(ProductCategory.id).all()
 
 
 @cat_router.post("", response_model=ProductOut, status_code=201)
 def create_product(
     payload: ProductCreate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    p = ProductCategory(**payload.model_dump())
+    data = payload.model_dump()
+    data["orchard"] = orchard
+    p = ProductCategory(**data)
     db.add(p)
     db.commit()
     db.refresh(p)
@@ -43,10 +50,11 @@ def create_product(
 def update_product(
     pid: int,
     payload: ProductUpdate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    p = db.get(ProductCategory, pid)
+    p = db.query(ProductCategory).filter(ProductCategory.id == pid, ProductCategory.orchard == orchard).first()
     if not p:
         raise HTTPException(404, "品类不存在")
     for k, v in payload.model_dump(exclude_unset=True).items():
@@ -59,10 +67,11 @@ def update_product(
 @cat_router.delete("/{pid}", status_code=204)
 def delete_product(
     pid: int,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    p = db.get(ProductCategory, pid)
+    p = db.query(ProductCategory).filter(ProductCategory.id == pid, ProductCategory.orchard == orchard).first()
     if not p:
         raise HTTPException(404, "品类不存在")
     n = db.query(ProductionLog).filter(ProductionLog.category_id == pid).count()
@@ -82,9 +91,11 @@ def list_production_logs(
     category_id: int | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     q = db.query(ProductionLog).options(joinedload(ProductionLog.category))
+    q = q.filter(ProductionLog.orchard == orchard)
     if start:
         q = q.filter(ProductionLog.date >= start)
     if end:
@@ -99,10 +110,13 @@ def list_production_logs(
 @log_router.post("", response_model=ProductionLogOut, status_code=201)
 def create_production_log(
     payload: ProductionLogCreate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    cat = db.get(ProductCategory, payload.category_id)
+    cat = db.query(ProductCategory).filter(
+        ProductCategory.id == payload.category_id, ProductCategory.orchard == orchard
+    ).first()
     if not cat:
         raise HTTPException(404, "品类不存在")
     exists = (
@@ -115,6 +129,7 @@ def create_production_log(
     data = payload.model_dump()
     if not data.get("unit_price"):
         data["unit_price"] = cat.unit_price
+    data["orchard"] = orchard
     log = ProductionLog(**data)
     db.add(log)
     try:
@@ -130,10 +145,11 @@ def create_production_log(
 def update_production_log(
     log_id: int,
     payload: ProductionLogUpdate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    log = db.get(ProductionLog, log_id)
+    log = db.query(ProductionLog).filter(ProductionLog.id == log_id, ProductionLog.orchard == orchard).first()
     if not log:
         raise HTTPException(404, "产量记录不存在")
     for k, v in payload.model_dump(exclude_unset=True).items():
@@ -146,10 +162,11 @@ def update_production_log(
 @log_router.delete("/{log_id}", status_code=204)
 def delete_production_log(
     log_id: int,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    log = db.get(ProductionLog, log_id)
+    log = db.query(ProductionLog).filter(ProductionLog.id == log_id, ProductionLog.orchard == orchard).first()
     if not log:
         raise HTTPException(404, "产量记录不存在")
     db.delete(log)

@@ -23,7 +23,7 @@ def _infer_report_type(start: date, end: date) -> str:
     return "custom"
 
 
-def build_report(db: Session, start: date, end: date) -> ReportData:
+def build_report(db: Session, start: date, end: date, orchard: str = "peach") -> ReportData:
     """聚合 [start, end] 区间内的产量 + 工资数据。"""
     # 各品类聚合
     cat_rows = (
@@ -40,7 +40,11 @@ def build_report(db: Session, start: date, end: date) -> ReportData:
             ).label("revenue"),
         )
         .join(ProductionLog, ProductionLog.category_id == ProductCategory.id)
-        .filter(ProductionLog.date >= start, ProductionLog.date <= end)
+        .filter(
+            ProductionLog.date >= start,
+            ProductionLog.date <= end,
+            ProductionLog.orchard == orchard,
+        )
         .group_by(ProductCategory.id)
         .all()
     )
@@ -65,7 +69,7 @@ def build_report(db: Session, start: date, end: date) -> ReportData:
             )
         )
 
-    workers = calc_wages(db, start, end)
+    workers = calc_wages(db, start, end, orchard=orchard)
 
     return ReportData(
         period_start=start,

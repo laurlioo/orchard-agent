@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import get_orchard
 from app.schemas.report import WorkerWageRow
 from app.services.wage_calculator import calc_wages
 
@@ -27,12 +28,13 @@ def get_wages(
     request: Request,
     start: date = Query(...),
     end: date = Query(...),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
-    rows = calc_wages(db, start, end)
     if getattr(request.state, "user_role", "") == "worker":
-        wid = request.state.user_id
-        rows = [r for r in rows if r.worker_id == wid]
+        rows = calc_wages(db, start, end, worker_id=request.state.user_id)
+    else:
+        rows = calc_wages(db, start, end, orchard=orchard)
     return WageSummary(
         period=f"{start}~{end}",
         workers=rows,

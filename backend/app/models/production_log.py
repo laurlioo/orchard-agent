@@ -12,6 +12,7 @@ class ProductionLog(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    orchard = Column(String(20), nullable=False, default="peach", index=True)  # peach/grape
     category_id = Column(Integer, ForeignKey("product_categories.id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
     quantity = Column(Float, nullable=False)  # 数量

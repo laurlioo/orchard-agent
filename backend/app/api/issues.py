@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import get_orchard
 from app.core.security import require_admin
 from app.models.user import User
 from app.models.issue import Issue
@@ -20,9 +21,11 @@ def list_issues(
     category: str | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     q = db.query(Issue)
+    q = q.filter(Issue.orchard == orchard)
     if status:
         q = q.filter(Issue.status == status)
     if category:
@@ -35,10 +38,13 @@ def list_issues(
 @router.post("", response_model=IssueOut, status_code=201)
 def create_issue(
     payload: IssueCreate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    issue = Issue(**payload.model_dump())
+    data = payload.model_dump()
+    data["orchard"] = orchard
+    issue = Issue(**data)
     db.add(issue)
     db.commit()
     db.refresh(issue)
@@ -49,10 +55,11 @@ def create_issue(
 def update_issue(
     issue_id: int,
     payload: IssueUpdate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    issue = db.get(Issue, issue_id)
+    issue = db.query(Issue).filter(Issue.id == issue_id, Issue.orchard == orchard).first()
     if not issue:
         raise HTTPException(404, "工单不存在")
     for k, v in payload.model_dump(exclude_unset=True).items():
@@ -69,10 +76,11 @@ def update_issue(
 @router.delete("/{issue_id}", status_code=204)
 def delete_issue(
     issue_id: int,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    issue = db.get(Issue, issue_id)
+    issue = db.query(Issue).filter(Issue.id == issue_id, Issue.orchard == orchard).first()
     if not issue:
         raise HTTPException(404, "工单不存在")
     db.delete(issue)

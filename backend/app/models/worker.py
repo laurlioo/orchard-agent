@@ -8,6 +8,7 @@ class Worker(Base):
     __tablename__ = "workers"
 
     id = Column(Integer, primary_key=True, index=True)
+    orchard = Column(String(20), nullable=False, default="peach", index=True)  # peach/grape
     name = Column(String(50), nullable=False, index=True)
     phone = Column(String(20), default="")
     role = Column(String(50), default="工人")  # 采摘/分拣/养护/管理

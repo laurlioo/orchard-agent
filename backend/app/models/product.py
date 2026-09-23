@@ -8,6 +8,7 @@ class ProductCategory(Base):
     __tablename__ = "product_categories"
 
     id = Column(Integer, primary_key=True, index=True)
+    orchard = Column(String(20), nullable=False, default="peach", index=True)  # peach/grape
     name = Column(String(50), nullable=False, index=True)  # 苹果/梨/桃...
     unit = Column(String(10), default="斤")  # 计量单位
     unit_price = Column(Float, default=0.0)  # 售价（元/单位）

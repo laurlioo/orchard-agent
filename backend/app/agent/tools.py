@@ -32,8 +32,8 @@ def _json(obj) -> str:
 
 # ---- 工具实现 ----
 
-def _get_workers(db: Session, args: dict) -> str:
-    rows = db.query(Worker).order_by(Worker.id).all()
+def _get_workers(db: Session, args: dict, orchard: str) -> str:
+    rows = db.query(Worker).filter(Worker.orchard == orchard).order_by(Worker.id).all()
     return _json([
         {"id": w.id, "name": w.name, "role": w.role, "hourly_rate": w.hourly_rate,
          "active": w.active}
@@ -41,11 +41,11 @@ def _get_workers(db: Session, args: dict) -> str:
     ])
 
 
-def _get_worklogs(db: Session, args: dict) -> str:
+def _get_worklogs(db: Session, args: dict, orchard: str) -> str:
     d = _d(args.get("date"))
     rows = (
         db.query(WorkLog)
-        .filter(WorkLog.date == d)
+        .filter(WorkLog.date == d, WorkLog.orchard == orchard)
         .order_by(WorkLog.id)
         .all()
     )
@@ -57,14 +57,18 @@ def _get_worklogs(db: Session, args: dict) -> str:
     ])
 
 
-def _get_production(db: Session, args: dict) -> str:
+def _get_production(db: Session, args: dict, orchard: str) -> str:
     s = _d(args.get("start"))
     e = _d(args.get("end"))
     if args.get("start") is None and args.get("end") is None:
         e = s  # 默认单日
     rows = (
         db.query(ProductionLog)
-        .filter(ProductionLog.date >= s, ProductionLog.date <= e)
+        .filter(
+            ProductionLog.date >= s,
+            ProductionLog.date <= e,
+            ProductionLog.orchard == orchard,
+        )
         .order_by(ProductionLog.date, ProductionLog.id)
         .all()
     )
@@ -75,10 +79,10 @@ def _get_production(db: Session, args: dict) -> str:
     ])
 
 
-def _calculate_wages(db: Session, args: dict) -> str:
+def _calculate_wages(db: Session, args: dict, orchard: str) -> str:
     s = _d(args.get("start"))
     e = _d(args.get("end") or args.get("start"))
-    rows = calc_wages(db, s, e)
+    rows = calc_wages(db, s, e, orchard=orchard)
     return _json({
         "period": f"{s}~{e}",
         "workers": [r.model_dump() for r in rows],
@@ -90,7 +94,7 @@ def _calculate_wages(db: Session, args: dict) -> str:
     })
 
 
-def _generate_report(db: Session, args: dict) -> str:
+def _generate_report(db: Session, args: dict, orchard: str) -> str:
     report_type = args.get("report_type", "daily")
     if report_type == "daily":
         s = e = _d(args.get("start"))
@@ -99,17 +103,18 @@ def _generate_report(db: Session, args: dict) -> str:
         e = _d(args.get("end"))
     else:
         s = e = _d(args.get("start"))
-    report = build_report(db, s, e)
+    report = build_report(db, s, e, orchard=orchard)
     report.report_type = report_type
     return _json(report.model_dump())
 
 
-def _create_issue(db: Session, args: dict) -> str:
+def _create_issue(db: Session, args: dict, orchard: str) -> str:
     issue = Issue(
         reporter_name=args["reporter_name"],
         reporter_role=args.get("reporter_role", ""),
         category=args.get("category", "种植养护"),
         content=args["content"],
+        orchard=orchard,
     )
     db.add(issue)
     db.commit()
@@ -118,8 +123,8 @@ def _create_issue(db: Session, args: dict) -> str:
                   "created_at": str(issue.created_at)})
 
 
-def _list_issues(db: Session, args: dict) -> str:
-    q = db.query(Issue)
+def _list_issues(db: Session, args: dict, orchard: str) -> str:
+    q = db.query(Issue).filter(Issue.orchard == orchard)
     if args.get("status"):
         q = q.filter(Issue.status == args["status"])
     if args.get("category"):
@@ -243,7 +248,7 @@ TOOLS: list[dict] = [
 ]
 
 
-EXECUTORS: dict[str, Callable[[Session, dict], str]] = {
+EXECUTORS: dict[str, Callable[[Session, dict, str], str]] = {
     "get_workers": _get_workers,
     "get_worklogs": _get_worklogs,
     "get_production": _get_production,

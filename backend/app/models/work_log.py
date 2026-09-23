@@ -12,6 +12,7 @@ class WorkLog(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    orchard = Column(String(20), nullable=False, default="peach", index=True)  # peach/grape
     worker_id = Column(Integer, ForeignKey("workers.id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
     hours = Column(Float, nullable=False, default=0)  # 正常工时（小时）

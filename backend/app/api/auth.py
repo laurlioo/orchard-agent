@@ -42,7 +42,8 @@ def worker_login(payload: WorkerLoginRequest, db: Session = Depends(get_db)):
     """工人用档案姓名 + 登记手机号登录，只能查看本人的工时和工资。"""
     name = payload.name.strip()
     phone = payload.phone.strip()
-    rows = db.query(Worker).filter(Worker.name == name).all()
+    orchard = payload.orchard
+    rows = db.query(Worker).filter(Worker.name == name, Worker.orchard == orchard).all()
     if not rows:
         raise HTTPException(401, "未找到该姓名，请与档案上的姓名完全一致")
     active = [w for w in rows if w.active]

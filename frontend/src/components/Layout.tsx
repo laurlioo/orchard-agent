@@ -11,9 +11,10 @@ import {
   X,
   Menu,
   LogOut,
+  ArrowLeftRight,
 } from 'lucide-react'
 import ChatPanel from './ChatPanel'
-import { clearToken, getRole, getUsername, isWorker } from '../api/client'
+import { clearToken, getRole, getUsername, getOrchard, isWorker } from '../api/client'
 
 const STAFF_NAV = [
   { to: '/workers', label: '工人管理', icon: Users },
@@ -37,11 +38,16 @@ export default function Layout() {
     navigate('/login', { replace: true })
   }
 
+  const switchOrchard = () => {
+    setMenuOpen(false)
+    navigate('/orchards')
+  }
+
   return (
     <div className="h-full flex">
       {/* 桌面侧边栏 */}
       <aside className="hidden md:flex w-56 bg-emerald-900 text-slate-100 flex-col">
-        <SidebarContent onNavigate={() => {}} onLogout={logout} />
+        <SidebarContent onNavigate={() => {}} onLogout={logout} onSwitch={switchOrchard} />
       </aside>
 
       {/* 移动端抽屉 */}
@@ -55,6 +61,7 @@ export default function Layout() {
             <SidebarContent
               onNavigate={() => setMenuOpen(false)}
               onLogout={logout}
+              onSwitch={switchOrchard}
               showClose
               onClose={() => setMenuOpen(false)}
             />
@@ -69,7 +76,9 @@ export default function Layout() {
           <button onClick={() => setMenuOpen(true)} className="p-1">
             <Menu size={22} />
           </button>
-          <span className="text-sm font-medium">{worker ? '我的工时工资' : '果园 Agent'}</span>
+          <span className="text-sm font-medium">
+            {worker ? '我的工时工资' : `${getOrchard() === 'peach' ? '桃园' : '葡萄园'}管理`}
+          </span>
           <button onClick={logout} className="p-1">
             <LogOut size={18} />
           </button>
@@ -119,11 +128,13 @@ export default function Layout() {
 function SidebarContent({
   onNavigate,
   onLogout,
+  onSwitch,
   showClose = false,
   onClose,
 }: {
   onNavigate: () => void
   onLogout: () => void
+  onSwitch?: () => void
   showClose?: boolean
   onClose?: () => void
 }) {
@@ -133,7 +144,7 @@ function SidebarContent({
         <div>
           <h1 className="text-lg font-bold">果园 Agent</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            {getUsername() || '运营助手'} ·{' '}
+            {getOrchard() === 'peach' ? '桃园' : '葡萄园'} · {getUsername() || '运营助手'} ·{' '}
             {getRole() === 'admin' ? '管理员' : getRole() === 'worker' ? '工人' : '只读'}
           </p>
         </div>
@@ -160,9 +171,18 @@ function SidebarContent({
           </NavLink>
         ))}
       </nav>
+      {!isWorker() && onSwitch && (
+        <button
+          onClick={onSwitch}
+          className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-emerald-800 border-t border-emerald-800"
+        >
+          <ArrowLeftRight size={18} />
+          切换果园
+        </button>
+      )}
       <button
         onClick={onLogout}
-        className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-emerald-800 border-t border-emerald-800"
+        className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-emerald-800"
       >
         <LogOut size={18} />
         退出登录

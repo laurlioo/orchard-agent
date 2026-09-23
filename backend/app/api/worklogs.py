@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.core.deps import get_orchard
 from app.core.security import require_admin
 from app.models.user import User
 from app.models.work_log import WorkLog
@@ -24,11 +25,14 @@ def list_worklogs(
     worker_id: int | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     q = db.query(WorkLog).options(joinedload(WorkLog.worker))
     if getattr(request.state, "user_role", "") == "worker":
         worker_id = request.state.user_id
+    else:
+        q = q.filter(WorkLog.orchard == orchard)
     if start:
         q = q.filter(WorkLog.date >= start)
     if end:
@@ -43,11 +47,14 @@ def list_worklogs(
 @router.post("", response_model=WorkLogOut, status_code=201)
 def create_worklog(
     payload: WorkLogCreate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     worker = db.get(Worker, payload.worker_id)
     if not worker:
+        raise HTTPException(404, "工人不存在")
+    if worker.orchard != orchard:
         raise HTTPException(404, "工人不存在")
     exists = (
         db.query(WorkLog)
@@ -59,6 +66,7 @@ def create_worklog(
     data = payload.model_dump()
     data["hourly_rate"] = worker.hourly_rate
     data["overtime_rate"] = worker.overtime_rate
+    data["orchard"] = orchard
     log = WorkLog(**data)
     db.add(log)
     try:
@@ -74,10 +82,11 @@ def create_worklog(
 def update_worklog(
     log_id: int,
     payload: WorkLogUpdate,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    log = db.get(WorkLog, log_id)
+    log = db.query(WorkLog).filter(WorkLog.id == log_id, WorkLog.orchard == orchard).first()
     if not log:
         raise HTTPException(404, "工时记录不存在")
     updates = payload.model_dump(exclude_unset=True)
@@ -98,10 +107,11 @@ def update_worklog(
 @router.delete("/{log_id}", status_code=204)
 def delete_worklog(
     log_id: int,
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    log = db.get(WorkLog, log_id)
+    log = db.query(WorkLog).filter(WorkLog.id == log_id, WorkLog.orchard == orchard).first()
     if not log:
         raise HTTPException(404, "工时记录不存在")
     db.delete(log)

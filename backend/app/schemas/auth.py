@@ -11,6 +11,7 @@ class LoginRequest(BaseModel):
 class WorkerLoginRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     phone: str = Field(..., min_length=1, max_length=20)
+    orchard: str = Field("peach", pattern="^(peach|grape)$")
 
 
 class SetupRequest(BaseModel):

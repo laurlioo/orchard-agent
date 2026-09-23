@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import get_orchard
 from app.schemas.report import ReportData
 from app.services.report_builder import build_report, export_excel
 from app.services.summary_writer import write_summary
@@ -43,11 +44,12 @@ def get_report(
     report_type: str = Query("daily", pattern="^(daily|weekly|monthly|custom)$"),
     start: date | None = Query(None),
     end: date | None = Query(None),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     """生成报表数字（不含 AI 摘要）。"""
     s, e = _resolve_range(report_type, start, end)
-    report = build_report(db, s, e)
+    report = build_report(db, s, e, orchard=orchard)
     report.report_type = report_type
     return report
 
@@ -57,11 +59,12 @@ def get_report_summary(
     report_type: str = Query("daily", pattern="^(daily|weekly|monthly|custom)$"),
     start: date | None = Query(None),
     end: date | None = Query(None),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     """单独生成 AI 摘要，避免拖慢数字报表。"""
     s, e = _resolve_range(report_type, start, end)
-    report = build_report(db, s, e)
+    report = build_report(db, s, e, orchard=orchard)
     report.report_type = report_type
     return SummaryOut(summary=write_summary(report))
 
@@ -72,11 +75,12 @@ def export_report(
     start: date | None = Query(None),
     end: date | None = Query(None),
     with_summary: bool = Query(False),
+    orchard: str = Depends(get_orchard),
     db: Session = Depends(get_db),
 ):
     """下载 .xlsx 报表。默认不含 AI 摘要。"""
     s, e = _resolve_range(report_type, start, end)
-    report = build_report(db, s, e)
+    report = build_report(db, s, e, orchard=orchard)
     report.report_type = report_type
     if with_summary:
         report.summary = write_summary(report)

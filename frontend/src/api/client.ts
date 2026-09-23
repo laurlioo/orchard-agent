@@ -5,6 +5,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const TOKEN_KEY = 'orchard_token'
 const ROLE_KEY = 'orchard_role'
 const USER_KEY = 'orchard_username'
+const ORCHARD_KEY = 'orchard'
+
+export type Orchard = 'peach' | 'grape'
 
 export function localDateISO(d = new Date()): string {
   const y = d.getFullYear()
@@ -25,6 +28,19 @@ export function getUsername(): string {
   return localStorage.getItem(USER_KEY) || ''
 }
 
+export function getOrchard(): Orchard {
+  return (localStorage.getItem(ORCHARD_KEY) as Orchard) || 'peach'
+}
+
+export function setOrchard(orchard: Orchard) {
+  localStorage.setItem(ORCHARD_KEY, orchard)
+}
+
+export function hasOrchard(): boolean {
+  const v = localStorage.getItem(ORCHARD_KEY)
+  return v === 'peach' || v === 'grape'
+}
+
 export function isAdmin(): boolean {
   return getRole() === 'admin'
 }
@@ -34,7 +50,8 @@ export function isWorker(): boolean {
 }
 
 export function homePath(): string {
-  return isWorker() ? '/me' : '/worklogs'
+  if (isWorker()) return '/me'
+  return hasOrchard() ? '/worklogs' : '/orchards'
 }
 
 export function setSession(token: string, role: string, username: string) {
@@ -64,6 +81,7 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  config.params = { ...(config.params || {}), orchard: getOrchard() }
   return config
 })
 
@@ -112,8 +130,8 @@ export const AuthApi = {
       .then((r) => r.data),
   login: (username: string, password: string) =>
     http.post<LoginResponse>('/auth/login', { username, password }).then((r) => r.data),
-  workerLogin: (name: string, phone: string) =>
-    http.post<LoginResponse>('/auth/worker-login', { name, phone }).then((r) => r.data),
+  workerLogin: (name: string, phone: string, orchard: Orchard) =>
+    http.post<LoginResponse>('/auth/worker-login', { name, phone, orchard }).then((r) => r.data),
   me: () => http.get<AuthUser>('/auth/me').then((r) => r.data),
   register: (data: { username: string; password: string; role: string }) =>
     http.post<AuthUser>('/auth/register', data).then((r) => r.data),
@@ -335,7 +353,7 @@ export async function chatWithAgent(
   signal?: AbortSignal,
 ) {
   const token = getToken()
-  const res = await fetch(`${API_BASE_URL}/agent/chat`, {
+  const res = await fetch(`${API_BASE_URL}/agent/chat?orchard=${getOrchard()}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

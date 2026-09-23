@@ -7,18 +7,27 @@ from app.models.work_log import WorkLog
 from app.schemas.report import WorkerWageRow
 
 
-def calc_wages(db: Session, start: date, end: date) -> list[WorkerWageRow]:
+def calc_wages(
+    db: Session,
+    start: date,
+    end: date,
+    orchard: str | None = "peach",
+    worker_id: int | None = None,
+) -> list[WorkerWageRow]:
     """
     返回 [start, end] 闭区间内每个工人的工资明细，拆分正常/加班。
     时薪取工时记录快照；旧数据没有快照时回退工人当前时薪。
     """
-    logs = (
+    q = (
         db.query(WorkLog)
         .options(joinedload(WorkLog.worker))
         .filter(WorkLog.date >= start, WorkLog.date <= end)
-        .order_by(WorkLog.date.asc(), WorkLog.id.asc())
-        .all()
     )
+    if worker_id is not None:
+        q = q.filter(WorkLog.worker_id == worker_id)
+    elif orchard:
+        q = q.filter(WorkLog.orchard == orchard)
+    logs = q.order_by(WorkLog.date.asc(), WorkLog.id.asc()).all()
     buckets: dict[int, dict] = {}
     for log in logs:
         w = log.worker

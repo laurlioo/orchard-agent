@@ -25,6 +25,7 @@ async def run(
     history: list[dict],
     db: Session,
     user_role: str = "viewer",
+    orchard: str = "peach",
 ) -> AsyncIterator[dict]:
     """主入口：跑 Agent 循环，yield 事件。"""
     if not settings.DEEPSEEK_API_KEY:
@@ -80,7 +81,7 @@ async def run(
                         if executor is None:
                             result = f"未知工具：{name}"
                         else:
-                            result = executor(db, args)
+                            result = executor(db, args, orchard)
                 except Exception as e:
                     result = f"工具执行失败：{e}"
                 yield {"type": "tool_result", "name": name, "result": result}

@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db, engine
+from app.core.deps import get_orchard
 from app.agent.orchestrator import run
 from app.schemas.agent import ChatRequest
 
@@ -18,14 +19,19 @@ def _sse(event_type: str, data: dict) -> str:
 
 
 @router.post("/chat")
-async def chat(req: ChatRequest, request: Request, db: Session = Depends(get_db)):
+async def chat(
+    req: ChatRequest,
+    request: Request,
+    orchard: str = Depends(get_orchard),
+    db: Session = Depends(get_db),
+):
     """POST /agent/chat，返回 text/event-stream。"""
     history = [{"role": m.role, "content": m.content} for m in req.history]
     user_role = getattr(request.state, "user_role", "viewer")
 
     async def gen():
         try:
-            async for ev in run(req.message, history, db, user_role=user_role):
+            async for ev in run(req.message, history, db, user_role=user_role, orchard=orchard):
                 t = ev["type"]
                 if t == "delta":
                     yield _sse("delta", {"content": ev["content"]})

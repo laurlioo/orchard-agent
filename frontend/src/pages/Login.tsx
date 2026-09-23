@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Apple, Shield, User } from 'lucide-react'
-import { AuthApi, setSession, getToken, homePath } from '../api/client'
+import { AuthApi, setSession, getToken, homePath, setOrchard, type Orchard } from '../api/client'
 import { toast } from '../lib/toast'
 
 type LoginKind = 'admin' | 'worker'
@@ -15,6 +15,7 @@ export default function Login() {
   const [confirm, setConfirm] = useState('')
   const [workerName, setWorkerName] = useState('')
   const [workerPhone, setWorkerPhone] = useState('')
+  const [workerOrchard, setWorkerOrchard] = useState<Orchard>('peach')
   const [setupToken, setSetupToken] = useState('')
   const [setupRequiresToken, setSetupRequiresToken] = useState(false)
   const [error, setError] = useState('')
@@ -39,7 +40,7 @@ export default function Login() {
   }, [navigate])
 
   const goHome = (role: string) => {
-    navigate(role === 'worker' ? '/me' : '/worklogs', { replace: true })
+    navigate(role === 'worker' ? '/me' : '/orchards', { replace: true })
   }
 
   const submit = async () => {
@@ -60,7 +61,8 @@ export default function Login() {
       if (kind === 'worker') {
         if (!workerName.trim()) return setError('请输入姓名')
         if (!workerPhone.trim()) return setError('请输入登记手机号')
-        const res = await AuthApi.workerLogin(workerName.trim(), workerPhone.trim())
+        const res = await AuthApi.workerLogin(workerName.trim(), workerPhone.trim(), workerOrchard)
+        setOrchard(workerOrchard)
         setSession(res.access_token, res.role, res.username)
         goHome(res.role)
         return
@@ -217,6 +219,30 @@ export default function Login() {
               </>
             ) : (
               <>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWorkerOrchard('peach')}
+                    className={`px-3 py-2 rounded-lg text-sm border ${
+                      workerOrchard === 'peach'
+                        ? 'border-pink-400 bg-pink-50 text-pink-800'
+                        : 'border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    桃园
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWorkerOrchard('grape')}
+                    className={`px-3 py-2 rounded-lg text-sm border ${
+                      workerOrchard === 'grape'
+                        ? 'border-purple-400 bg-purple-50 text-purple-800'
+                        : 'border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    葡萄园
+                  </button>
+                </div>
                 <label className="block">
                   <span className="text-xs text-slate-600">姓名（与工人档案一致）</span>
                   <input

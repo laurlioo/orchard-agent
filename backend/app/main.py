@@ -75,6 +75,11 @@ def _migrate_schema():
         ("work_logs", "hourly_rate", "ALTER TABLE work_logs ADD COLUMN hourly_rate FLOAT"),
         ("work_logs", "overtime_rate", "ALTER TABLE work_logs ADD COLUMN overtime_rate FLOAT"),
         ("production_logs", "unit_price", "ALTER TABLE production_logs ADD COLUMN unit_price FLOAT"),
+        ("workers", "orchard", "ALTER TABLE workers ADD COLUMN orchard VARCHAR(20) DEFAULT 'peach'"),
+        ("work_logs", "orchard", "ALTER TABLE work_logs ADD COLUMN orchard VARCHAR(20) DEFAULT 'peach'"),
+        ("product_categories", "orchard", "ALTER TABLE product_categories ADD COLUMN orchard VARCHAR(20) DEFAULT 'peach'"),
+        ("production_logs", "orchard", "ALTER TABLE production_logs ADD COLUMN orchard VARCHAR(20) DEFAULT 'peach'"),
+        ("issues", "orchard", "ALTER TABLE issues ADD COLUMN orchard VARCHAR(20) DEFAULT 'peach'"),
     ]
     with engine.connect() as conn:
         for table, col, sql in ALTERS:
@@ -122,11 +127,78 @@ def _migrate_schema():
                 pass
 
 
+def _migrate_orchards():
+    """把已有数据复制到葡萄园(grape)，桃园(peach)保留原数据；幂等。"""
+    from app.core.database import SessionLocal
+    from app.models.issue import Issue
+    from app.models.product import ProductCategory
+    from app.models.production_log import ProductionLog
+    from app.models.worker import Worker
+    from app.models.work_log import WorkLog
+
+    db = SessionLocal()
+    try:
+        if db.query(Worker).filter(Worker.orchard == "grape").count() > 0:
+            return
+        peach_workers = db.query(Worker).filter(Worker.orchard == "peach").all()
+        if not peach_workers:
+            return
+
+        worker_map: dict[int, int] = {}
+        for w in peach_workers:
+            nw = Worker(
+                name=w.name, phone=w.phone, role=w.role,
+                hourly_rate=w.hourly_rate, overtime_rate=w.overtime_rate,
+                active=w.active, created_at=w.created_at, orchard="grape",
+            )
+            db.add(nw)
+            db.flush()
+            worker_map[w.id] = nw.id
+
+        for lg in db.query(WorkLog).filter(WorkLog.orchard == "peach").all():
+            db.add(WorkLog(
+                worker_id=worker_map[lg.worker_id], date=lg.date, hours=lg.hours,
+                overtime_hours=lg.overtime_hours, task_desc=lg.task_desc,
+                hourly_rate=lg.hourly_rate, overtime_rate=lg.overtime_rate,
+                created_at=lg.created_at, orchard="grape",
+            ))
+
+        peach_cats = db.query(ProductCategory).filter(ProductCategory.orchard == "peach").all()
+        cat_map: dict[int, int] = {}
+        for c in peach_cats:
+            nc = ProductCategory(
+                name=c.name, unit=c.unit, unit_price=c.unit_price,
+                cost_per_unit=c.cost_per_unit, created_at=c.created_at, orchard="grape",
+            )
+            db.add(nc)
+            db.flush()
+            cat_map[c.id] = nc.id
+
+        for pl in db.query(ProductionLog).filter(ProductionLog.orchard == "peach").all():
+            db.add(ProductionLog(
+                category_id=cat_map[pl.category_id], date=pl.date, quantity=pl.quantity,
+                unit_price=pl.unit_price, notes=pl.notes, created_at=pl.created_at, orchard="grape",
+            ))
+
+        for iss in db.query(Issue).filter(Issue.orchard == "peach").all():
+            db.add(Issue(
+                reporter_name=iss.reporter_name, reporter_role=iss.reporter_role,
+                category=iss.category, content=iss.content, status=iss.status,
+                assignee=iss.assignee, reply=iss.reply, created_at=iss.created_at,
+                resolved_at=iss.resolved_at, orchard="grape",
+            ))
+
+        db.commit()
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.assert_secure()
     init_db()
     _migrate_schema()
+    _migrate_orchards()
     yield
 
 

@@ -9,6 +9,7 @@ import Wages from './pages/Wages'
 import Reports from './pages/Reports'
 import Issues from './pages/Issues'
 import MyPay from './pages/MyPay'
+import OrchardSelect from './pages/OrchardSelect'
 import Toaster from './components/Toaster'
 import { homePath, isWorker } from './api/client'
 import { type ReactNode } from 'react'
@@ -23,6 +24,14 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/orchards"
+          element={
+            <RequireAuth>
+              <OrchardSelect />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/"
           element={
