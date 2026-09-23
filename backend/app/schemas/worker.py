@@ -20,8 +20,8 @@ class WorkerUpdate(BaseModel):
     name: str | None = None
     phone: str | None = None
     role: str | None = None
-    hourly_rate: float | None = None
-    overtime_rate: float | None = None
+    hourly_rate: float | None = Field(None, ge=0)
+    overtime_rate: float | None = Field(None, ge=1.0)
     active: bool | None = None
 
 

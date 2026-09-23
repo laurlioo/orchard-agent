@@ -1,5 +1,6 @@
 """FastAPI 入口：挂载路由 + CORS + 认证中间件 + 启动时建表。"""
 import os
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,6 +15,8 @@ from app.core.config import settings
 from app.core.database import init_db, engine
 from app.core.security import decode_token
 from app.api import auth, workers, worklogs, production, issues, wages, reports, agent
+
+logger = logging.getLogger(__name__)
 
 AUTH_WHITELIST = {
     "/",
@@ -143,6 +146,20 @@ if not cors_origins:
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """兜底异常处理：记录日志，并给 500 响应补上 CORS 头，避免前端误报 Network Error。"""
+    logger.error("Unhandled exception: %s", exc, exc_info=(type(exc), exc, exc.__traceback__))
+    headers = {}
+    origin = request.headers.get("origin")
+    if origin and (origin in cors_origins or "*" in cors_origins):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Vary"] = "Origin"
+    return JSONResponse(status_code=500, content={"detail": "服务器内部错误"}, headers=headers)
+
 
 app.add_middleware(AuthMiddleware)
 app.add_middleware(

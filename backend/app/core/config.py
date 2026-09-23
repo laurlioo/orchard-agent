@@ -70,6 +70,14 @@ class Settings:
         return not self.is_production
 
     @property
+    def chat_completions_url(self) -> str:
+        """DeepSeek chat completions 端点，自动处理尾部斜杠和 /v1 前缀。"""
+        base = self.DEEPSEEK_BASE_URL.rstrip("/")
+        if base.endswith("/v1"):
+            return f"{base}/chat/completions"
+        return f"{base}/v1/chat/completions"
+
+    @property
     def setup_requires_token(self) -> bool:
         """是否需要在初始化管理员时校验 setup_token。"""
         return bool(self.SETUP_TOKEN)

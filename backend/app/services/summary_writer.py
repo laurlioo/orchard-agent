@@ -45,7 +45,7 @@ def write_summary(report: ReportData) -> str:
     try:
         with httpx.Client(timeout=60.0) as client:
             r = client.post(
-                f"{settings.DEEPSEEK_BASE_URL}/v1/chat/completions",
+                settings.chat_completions_url,
                 json=payload,
                 headers=headers,
             )

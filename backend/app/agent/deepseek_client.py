@@ -32,7 +32,7 @@ async def chat(messages: list[dict], tools: list[dict] | None = None) -> dict:
     """非流式调用，返回完整 message 对象（含 tool_calls）。"""
     async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.post(
-            f"{settings.DEEPSEEK_BASE_URL}/v1/chat/completions",
+            settings.chat_completions_url,
             json=_payload(messages, tools, stream=False),
             headers=_headers(),
         )
@@ -53,7 +53,7 @@ async def chat_stream(
     async with httpx.AsyncClient(timeout=120.0) as client:
         async with client.stream(
             "POST",
-            f"{settings.DEEPSEEK_BASE_URL}/v1/chat/completions",
+            settings.chat_completions_url,
             json=_payload(messages, tools, stream=True),
             headers=_headers(),
         ) as r:

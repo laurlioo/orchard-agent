@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Pencil } from 'lucide-react'
 import {
   ProductionLogsApi,
   ProductsApi,
@@ -19,6 +19,7 @@ export default function Production() {
   const [logForm, setLogForm] = useState<Partial<ProductionLog>>({ category_id: 0, quantity: 0, notes: '' })
   const [addingCat, setAddingCat] = useState(false)
   const [catForm, setCatForm] = useState<Partial<Product>>({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
+  const [editingCat, setEditingCat] = useState<Partial<Product> | null>(null)
 
   const load = async () => {
     const ps = await ProductsApi.list()
@@ -58,6 +59,18 @@ export default function Production() {
       await ProductsApi.create(catForm)
       setAddingCat(false)
       setCatForm({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
+      load()
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
+  const submitCatEdit = async () => {
+    if (!editingCat?.id) return
+    if (!editingCat.name) return alert('品类名必填')
+    try {
+      await ProductsApi.update(editingCat.id, editingCat)
+      setEditingCat(null)
       load()
     } catch (e: any) {
       alert(e.message)
@@ -189,7 +202,10 @@ export default function Production() {
                     <td className="px-4 py-2">¥{p.cost_per_unit}</td>
                     <td className="px-4 py-2 text-emerald-600">¥{(p.unit_price - p.cost_per_unit).toFixed(2)}</td>
                     {admin && (
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-2 flex gap-2">
+                        <button onClick={() => setEditingCat(p)} className="text-slate-500 hover:text-emerald-600">
+                          <Pencil size={14} />
+                        </button>
                         <button
                           onClick={async () => {
                             if (confirm('删除该品类?')) {
@@ -266,21 +282,26 @@ export default function Production() {
                   毛利 ¥{(p.unit_price - p.cost_per_unit).toFixed(2)}
                 </span>
                 {admin && (
-                  <button
-                    onClick={async () => {
-                      if (confirm('删除该品类?')) {
-                        try {
-                          await ProductsApi.remove(p.id)
-                          load()
-                        } catch (e: any) {
-                          alert(e.message)
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditingCat(p)} className="text-slate-500">
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('删除该品类?')) {
+                          try {
+                            await ProductsApi.remove(p.id)
+                            load()
+                          } catch (e: any) {
+                            alert(e.message)
+                          }
                         }
-                      }
-                    }}
-                    className="text-red-500"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                      }}
+                      className="text-red-500"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -362,6 +383,47 @@ export default function Production() {
               step="0.1"
               value={catForm.cost_per_unit}
               onChange={(e) => setCatForm({ ...catForm, cost_per_unit: parseFloat(e.target.value) || 0 })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+        </Modal>
+      )}
+
+      {editingCat && (
+        <Modal title={`编辑品类 #${editingCat.id}`} onClose={() => setEditingCat(null)} onSubmit={submitCatEdit}>
+          <label className="block text-sm">
+            <span className="text-slate-600">品类名</span>
+            <input
+              value={editingCat.name || ''}
+              onChange={(e) => setEditingCat({ ...editingCat, name: e.target.value })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-600">单位</span>
+            <input
+              value={editingCat.unit || ''}
+              onChange={(e) => setEditingCat({ ...editingCat, unit: e.target.value })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-600">售价 (元/单位)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={editingCat.unit_price}
+              onChange={(e) => setEditingCat({ ...editingCat, unit_price: parseFloat(e.target.value) || 0 })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-600">单位成本</span>
+            <input
+              type="number"
+              step="0.1"
+              value={editingCat.cost_per_unit}
+              onChange={(e) => setEditingCat({ ...editingCat, cost_per_unit: parseFloat(e.target.value) || 0 })}
               className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
             />
           </label>

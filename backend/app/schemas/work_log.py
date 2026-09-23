@@ -18,6 +18,8 @@ class WorkLogCreate(WorkLogBase):
     def hours_not_all_zero(self):
         if (self.hours or 0) + (self.overtime_hours or 0) <= 0:
             raise ValueError("正常工时和加班工时不能都为 0")
+        if (self.hours or 0) + (self.overtime_hours or 0) > 24:
+            raise ValueError("正常工时和加班工时合计不能超过 24 小时")
         return self
 
 

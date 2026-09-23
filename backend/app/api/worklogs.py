@@ -78,8 +78,11 @@ def update_worklog(
     updates = payload.model_dump(exclude_unset=True)
     hours = updates.get("hours", log.hours)
     ot = updates.get("overtime_hours", log.overtime_hours)
-    if (hours or 0) + (ot or 0) <= 0:
+    total = (hours or 0) + (ot or 0)
+    if total <= 0:
         raise HTTPException(400, "正常工时和加班工时不能都为 0")
+    if total > 24:
+        raise HTTPException(400, "正常工时和加班工时合计不能超过 24 小时")
     for k, v in updates.items():
         setattr(log, k, v)
     db.commit()
