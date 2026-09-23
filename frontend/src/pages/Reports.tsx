@@ -95,7 +95,7 @@ export default function Reports() {
                 key={t.key}
                 onClick={() => selectType(t.key)}
                 className={`px-3 py-1.5 rounded text-sm ${
-                  type === t.key ? 'bg-slate-800 text-white' : 'border border-slate-200'
+                  type === t.key ? 'bg-emerald-900 text-white' : 'border border-slate-200'
                 }`}
               >
                 {t.label}
@@ -125,7 +125,7 @@ export default function Reports() {
           <button
             onClick={gen}
             disabled={loading}
-            className="px-4 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600 disabled:opacity-50"
+            className="px-4 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800 disabled:opacity-50"
           >
             {loading ? '生成中...' : '生成报表'}
           </button>

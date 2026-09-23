@@ -103,7 +103,7 @@ export default function WorkLogs() {
           {admin && (
             <button
               onClick={openCreate}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800"
             >
               <Plus size={16} /> 录入
             </button>
@@ -263,7 +263,7 @@ export default function WorkLogs() {
               >
                 取消
               </button>
-              <button onClick={submit} className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded text-sm">
+              <button onClick={submit} className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded text-sm">
                 保存
               </button>
             </div>

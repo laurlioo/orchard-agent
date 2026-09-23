@@ -45,7 +45,7 @@ export default function Workers() {
         {admin && (
           <button
             onClick={() => setEditing({ name: '', phone: '', role: '工人', hourly_rate: 0, overtime_rate: 1.5, active: true })}
-            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800"
           >
             <Plus size={16} /> 新增
           </button>
@@ -208,7 +208,7 @@ export default function Workers() {
               <button onClick={() => setEditing(null)} className="flex-1 px-3 py-2 border border-slate-200 rounded text-sm">
                 取消
               </button>
-              <button onClick={save} className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded text-sm">
+              <button onClick={save} className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded text-sm">
                 保存
               </button>
             </div>

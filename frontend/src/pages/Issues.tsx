@@ -71,7 +71,7 @@ export default function Issues() {
           {admin && (
             <button
               onClick={() => setAdding(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800"
             >
               <Plus size={16} /> 上报问题
             </button>
@@ -175,7 +175,7 @@ export default function Issues() {
               <button onClick={() => setAdding(false)} className="flex-1 px-3 py-2 border border-slate-200 rounded text-sm">
                 取消
               </button>
-              <button onClick={submit} className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded text-sm">
+              <button onClick={submit} className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded text-sm">
                 提交
               </button>
             </div>
@@ -204,7 +204,7 @@ export default function Issues() {
               </button>
               <button
                 onClick={() => closeIssue(replying, reply)}
-                className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded text-sm"
+                className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded text-sm"
               >
                 关闭工单
               </button>

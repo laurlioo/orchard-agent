@@ -47,7 +47,7 @@ export default function Wages() {
         <button
           onClick={query}
           disabled={loading}
-          className="px-4 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600 disabled:opacity-50"
+          className="px-4 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800 disabled:opacity-50"
         >
           {loading ? '查询中...' : '查询'}
         </button>

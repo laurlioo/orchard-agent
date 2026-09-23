@@ -101,7 +101,7 @@ export default function ChatPanel() {
             key={i}
             className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${
               m.role === 'user'
-                ? 'bg-emerald-500 text-white ml-auto'
+                ? 'bg-emerald-700 text-white ml-auto'
                 : 'bg-white border border-slate-200 text-slate-700'
             }`}
           >
@@ -161,7 +161,7 @@ export default function ChatPanel() {
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded disabled:opacity-50"
+            className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>

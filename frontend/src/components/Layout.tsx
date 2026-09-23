@@ -40,7 +40,7 @@ export default function Layout() {
   return (
     <div className="h-full flex">
       {/* 桌面侧边栏 */}
-      <aside className="hidden md:flex w-56 bg-slate-800 text-slate-100 flex-col">
+      <aside className="hidden md:flex w-56 bg-emerald-900 text-slate-100 flex-col">
         <SidebarContent onNavigate={() => {}} onLogout={logout} />
       </aside>
 
@@ -51,7 +51,7 @@ export default function Layout() {
             className="md:hidden fixed inset-0 bg-black/40 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-slate-800 text-slate-100 z-50 flex flex-col animate-[slidein_0.2s_ease-out]">
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-emerald-900 text-slate-100 z-50 flex flex-col animate-[slidein_0.2s_ease-out]">
             <SidebarContent
               onNavigate={() => setMenuOpen(false)}
               onLogout={logout}
@@ -65,7 +65,7 @@ export default function Layout() {
       {/* 主内容 */}
       <main className="flex-1 overflow-auto flex flex-col">
         {/* 移动端顶栏 */}
-        <header className="md:hidden flex items-center justify-between px-3 py-2.5 bg-slate-800 text-white sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between px-3 py-2.5 bg-emerald-900 text-white sticky top-0 z-30">
           <button onClick={() => setMenuOpen(true)} className="p-1">
             <Menu size={22} />
           </button>
@@ -84,7 +84,7 @@ export default function Layout() {
       {!worker && !chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-5 right-5 w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition z-30"
+          className="fixed bottom-5 right-5 w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white shadow-lg flex items-center justify-center transition z-30"
           title="打开 Agent 对话"
         >
           <MessageCircle size={22} />
@@ -93,7 +93,7 @@ export default function Layout() {
 
       {!worker && chatOpen && (
         <div className="fixed bottom-0 right-0 left-0 md:bottom-6 md:right-6 md:left-auto md:w-96 h-[70vh] md:h-[32rem] bg-white shadow-2xl border border-slate-200 flex flex-col z-50 rounded-t-lg md:rounded-lg">
-          <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white rounded-t-lg">
+          <div className="flex items-center justify-between px-4 py-3 bg-emerald-700 text-white rounded-t-lg">
             <div className="flex items-center gap-2">
               <MessageCircle size={18} />
               <span className="font-medium">Agent 助手</span>
@@ -129,7 +129,7 @@ function SidebarContent({
 }) {
   return (
     <>
-      <div className="px-4 py-5 border-b border-slate-700 flex items-center justify-between">
+      <div className="px-4 py-5 border-b border-emerald-800 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold">果园 Agent</h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -150,8 +150,8 @@ function SidebarContent({
             to={to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-700 transition ${
-                isActive ? 'bg-slate-700 border-l-4 border-emerald-400' : 'border-l-4 border-transparent'
+              `flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-emerald-800 transition ${
+                isActive ? 'bg-emerald-800 border-l-4 border-emerald-400' : 'border-l-4 border-transparent'
               }`
             }
           >
@@ -162,7 +162,7 @@ function SidebarContent({
       </nav>
       <button
         onClick={onLogout}
-        className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 border-t border-slate-700"
+        className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-emerald-800 border-t border-emerald-800"
       >
         <LogOut size={18} />
         退出登录

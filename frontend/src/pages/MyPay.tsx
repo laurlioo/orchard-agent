@@ -72,7 +72,7 @@ export default function MyPay() {
           <button
             onClick={() => setTab('day')}
             className={`px-3 py-1.5 rounded text-sm ${
-              tab === 'day' ? 'bg-slate-800 text-white' : 'border border-slate-200'
+              tab === 'day' ? 'bg-emerald-900 text-white' : 'border border-slate-200'
             }`}
           >
             每日
@@ -80,7 +80,7 @@ export default function MyPay() {
           <button
             onClick={() => setTab('month')}
             className={`px-3 py-1.5 rounded text-sm ${
-              tab === 'month' ? 'bg-slate-800 text-white' : 'border border-slate-200'
+              tab === 'month' ? 'bg-emerald-900 text-white' : 'border border-slate-200'
             }`}
           >
             每月

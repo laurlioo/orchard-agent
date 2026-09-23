@@ -94,7 +94,7 @@ export default function Production() {
             admin ? (
               <button
                 onClick={() => setAddingLog(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800"
               >
                 <Plus size={16} /> 录入产量
               </button>
@@ -102,7 +102,7 @@ export default function Production() {
           ) : admin ? (
             <button
               onClick={() => setAddingCat(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded text-sm hover:bg-emerald-600"
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded text-sm hover:bg-emerald-800"
             >
               <Plus size={16} /> 新增品类
             </button>
@@ -113,13 +113,13 @@ export default function Production() {
       <div className="flex gap-1 mb-3">
         <button
           onClick={() => setTab('logs')}
-          className={`px-3 py-1 rounded text-sm ${tab === 'logs' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200'}`}
+          className={`px-3 py-1 rounded text-sm ${tab === 'logs' ? 'bg-emerald-900 text-white' : 'bg-white border border-slate-200'}`}
         >
           产量记录
         </button>
         <button
           onClick={() => setTab('categories')}
-          className={`px-3 py-1 rounded text-sm ${tab === 'categories' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200'}`}
+          className={`px-3 py-1 rounded text-sm ${tab === 'categories' ? 'bg-emerald-900 text-white' : 'bg-white border border-slate-200'}`}
         >
           品类管理
         </button>
@@ -453,7 +453,7 @@ function Modal({
           <button onClick={onClose} className="flex-1 px-3 py-2 border border-slate-200 rounded text-sm">
             取消
           </button>
-          <button onClick={onSubmit} className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded text-sm">
+          <button onClick={onSubmit} className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded text-sm">
             保存
           </button>
         </div>
