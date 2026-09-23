@@ -12,7 +12,7 @@ import { toast } from '../lib/toast'
 import Pagination from '../components/Pagination'
 
 const emptyForm = { worker_id: 0, hours: 8, overtime_hours: 0, task_desc: '' }
-const PAGE_SIZE = 20
+const PAGE_SIZE = 12
 
 export default function WorkLogs() {
   const admin = isAdmin()

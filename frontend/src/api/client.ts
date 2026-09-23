@@ -160,6 +160,7 @@ export interface ProductionLog {
   category_id: number
   date: string
   quantity: number
+  unit_price?: number | null
   notes: string
   created_at: string
   category?: Product

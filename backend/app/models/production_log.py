@@ -15,6 +15,7 @@ class ProductionLog(Base):
     category_id = Column(Integer, ForeignKey("product_categories.id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
     quantity = Column(Float, nullable=False)  # 数量
+    unit_price = Column(Float, nullable=True)  # 当日售价快照；为空则回退品类售价
     notes = Column(String(200), default="")
     created_at = Column(DateTime, server_default=func.now())
 

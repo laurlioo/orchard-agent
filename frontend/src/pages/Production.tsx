@@ -11,7 +11,7 @@ import {
 import { toast } from '../lib/toast'
 import Pagination from '../components/Pagination'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 12
 
 export default function Production() {
   const admin = isAdmin()
@@ -20,7 +20,8 @@ export default function Production() {
   const [products, setProducts] = useState<Product[]>([])
   const [date, setDate] = useState(localDateISO())
   const [addingLog, setAddingLog] = useState(false)
-  const [logForm, setLogForm] = useState<Partial<ProductionLog>>({ category_id: 0, quantity: 0, notes: '' })
+  const [logForm, setLogForm] = useState<Partial<ProductionLog>>({ category_id: 0, quantity: 0, unit_price: 0, notes: '' })
+  const [editingLog, setEditingLog] = useState<Partial<ProductionLog> | null>(null)
   const [addingCat, setAddingCat] = useState(false)
   const [catForm, setCatForm] = useState<Partial<Product>>({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
   const [editingCat, setEditingCat] = useState<Partial<Product> | null>(null)
@@ -49,12 +50,32 @@ export default function Production() {
       const dup = logs.find((l) => l.category_id === logForm.category_id)
       if (dup) {
         if (!confirm('该品类当日已有产量，是否改为更新原记录？')) return
-        await ProductionLogsApi.update(dup.id, { quantity: logForm.quantity, notes: logForm.notes })
+        await ProductionLogsApi.update(dup.id, { quantity: logForm.quantity, unit_price: logForm.unit_price || undefined, notes: logForm.notes })
       } else {
         await ProductionLogsApi.create({ ...logForm, date } as any)
       }
       setAddingLog(false)
-      setLogForm({ category_id: 0, quantity: 0, notes: '' })
+      setLogForm({ category_id: 0, quantity: 0, unit_price: 0, notes: '' })
+      load()
+    } catch (e: any) {
+      toast(e.message)
+    }
+  }
+
+  const openEditLog = (l: ProductionLog) => {
+    setEditingLog({ id: l.id, category_id: l.category_id, date: l.date, quantity: l.quantity, unit_price: l.unit_price ?? 0, notes: l.notes })
+  }
+
+  const submitLogEdit = async () => {
+    if (!editingLog?.id) return
+    if (!editingLog.quantity || editingLog.quantity <= 0) return toast('数量必须大于 0')
+    try {
+      await ProductionLogsApi.update(editingLog.id, {
+        quantity: editingLog.quantity,
+        unit_price: editingLog.unit_price || undefined,
+        notes: editingLog.notes,
+      })
+      setEditingLog(null)
       load()
     } catch (e: any) {
       toast(e.message)
@@ -143,6 +164,7 @@ export default function Production() {
                 <th className="px-4 py-2 text-left">品类</th>
                 <th className="px-4 py-2 text-left">数量</th>
                 <th className="px-4 py-2 text-left">单位</th>
+                <th className="px-4 py-2 text-left">售价</th>
                 <th className="px-4 py-2 text-left">备注</th>
                 {admin && <th className="px-4 py-2 text-left">操作</th>}
               </tr>
@@ -150,7 +172,7 @@ export default function Production() {
             <tbody>
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={admin ? 6 : 5} className="text-center py-6 text-slate-400">该日暂无产量</td>
+                  <td colSpan={admin ? 7 : 6} className="text-center py-6 text-slate-400">该日暂无产量</td>
                 </tr>
               ) : (
                 logs.map((l) => (
@@ -159,9 +181,13 @@ export default function Production() {
                     <td className="px-4 py-2">{l.category?.name ?? `#${l.category_id}`}</td>
                     <td className="px-4 py-2">{l.quantity}</td>
                     <td className="px-4 py-2 text-slate-600">{l.category?.unit ?? '-'}</td>
+                    <td className="px-4 py-2">¥{l.unit_price ?? l.category?.unit_price ?? '-'}</td>
                     <td className="px-4 py-2 text-slate-600">{l.notes || '-'}</td>
                     {admin && (
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-2 flex gap-2">
+                        <button onClick={() => openEditLog(l)} className="text-slate-500 hover:text-emerald-600">
+                          <Pencil size={14} />
+                        </button>
                         <button
                           onClick={async () => {
                             if (confirm('删除?')) {
@@ -250,26 +276,31 @@ export default function Production() {
                 <div>
                   <div className="font-medium text-sm">{l.category?.name ?? `#${l.category_id}`}</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {l.quantity} {l.category?.unit ?? ''} · {l.date}
+                    {l.quantity} {l.category?.unit ?? ''} · ¥{l.unit_price ?? l.category?.unit_price ?? '-'} · {l.date}
                   </div>
                   {l.notes && <div className="text-xs text-slate-600 mt-1">{l.notes}</div>}
                 </div>
                 {admin && (
-                  <button
-                    onClick={async () => {
-                      if (confirm('删除?')) {
-                        try {
-                          await ProductionLogsApi.remove(l.id)
-                          load()
-                        } catch (e: any) {
-                          toast(e.message)
+                  <div className="flex gap-2">
+                    <button onClick={() => openEditLog(l)} className="text-slate-500">
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('删除?')) {
+                          try {
+                            await ProductionLogsApi.remove(l.id)
+                            load()
+                          } catch (e: any) {
+                            toast(e.message)
+                          }
                         }
-                      }
-                    }}
-                    className="text-red-500"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                      }}
+                      className="text-red-500"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             ))
@@ -327,7 +358,11 @@ export default function Production() {
             <span className="text-slate-600">品类</span>
             <select
               value={logForm.category_id}
-              onChange={(e) => setLogForm({ ...logForm, category_id: parseInt(e.target.value) })}
+              onChange={(e) => {
+                const id = parseInt(e.target.value)
+                const p = products.find((x) => x.id === id)
+                setLogForm({ ...logForm, category_id: id, unit_price: p?.unit_price ?? 0 })
+              }}
               className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
             >
               <option value={0}>请选择</option>
@@ -349,10 +384,54 @@ export default function Production() {
             />
           </label>
           <label className="block text-sm">
+            <span className="text-slate-600">当日售价 (元/单位)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={logForm.unit_price ?? 0}
+              onChange={(e) => setLogForm({ ...logForm, unit_price: parseFloat(e.target.value) || 0 })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
             <span className="text-slate-600">备注</span>
             <input
               value={logForm.notes || ''}
               onChange={(e) => setLogForm({ ...logForm, notes: e.target.value })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+        </Modal>
+      )}
+
+      {editingLog && (
+        <Modal title={`编辑产量 #${editingLog.id}`} onClose={() => setEditingLog(null)} onSubmit={submitLogEdit}>
+          <div className="text-sm text-slate-600">品类 #{editingLog.category_id} · {editingLog.date}</div>
+          <label className="block text-sm">
+            <span className="text-slate-600">数量</span>
+            <input
+              type="number"
+              step="0.1"
+              value={editingLog.quantity}
+              onChange={(e) => setEditingLog({ ...editingLog, quantity: parseFloat(e.target.value) || 0 })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-600">当日售价 (元/单位)</span>
+            <input
+              type="number"
+              step="0.1"
+              value={editingLog.unit_price ?? 0}
+              onChange={(e) => setEditingLog({ ...editingLog, unit_price: parseFloat(e.target.value) || 0 })}
+              className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-600">备注</span>
+            <input
+              value={editingLog.notes || ''}
+              onChange={(e) => setEditingLog({ ...editingLog, notes: e.target.value })}
               className="w-full mt-1 px-2 py-1.5 border border-slate-200 rounded"
             />
           </label>

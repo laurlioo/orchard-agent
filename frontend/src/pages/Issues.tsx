@@ -4,7 +4,7 @@ import { IssuesApi, isAdmin, type Issue } from '../api/client'
 import { toast } from '../lib/toast'
 import Pagination from '../components/Pagination'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 12
 
 export default function Issues() {
   const admin = isAdmin()

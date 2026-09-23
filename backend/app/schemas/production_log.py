@@ -9,6 +9,7 @@ class ProductionLogBase(BaseModel):
     category_id: int
     date: date
     quantity: float = Field(..., gt=0)
+    unit_price: float | None = Field(None, ge=0)
     notes: str = Field("", max_length=200)
 
 
@@ -18,6 +19,7 @@ class ProductionLogCreate(ProductionLogBase):
 
 class ProductionLogUpdate(BaseModel):
     quantity: float | None = Field(None, gt=0)
+    unit_price: float | None = Field(None, ge=0)
     notes: str | None = None
 
 

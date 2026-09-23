@@ -4,7 +4,7 @@ import { WorkersApi, isAdmin, type Worker } from '../api/client'
 import { toast } from '../lib/toast'
 import Pagination from '../components/Pagination'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 12
 
 export default function Workers() {
   const admin = isAdmin()

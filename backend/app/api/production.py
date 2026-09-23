@@ -112,7 +112,10 @@ def create_production_log(
     )
     if exists:
         raise HTTPException(400, "该品类当日已有产量，请直接编辑原记录")
-    log = ProductionLog(**payload.model_dump())
+    data = payload.model_dump()
+    if not data.get("unit_price"):
+        data["unit_price"] = cat.unit_price
+    log = ProductionLog(**data)
     db.add(log)
     try:
         db.commit()

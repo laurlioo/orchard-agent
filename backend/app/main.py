@@ -74,6 +74,7 @@ def _migrate_schema():
         ("work_logs", "overtime_hours", "ALTER TABLE work_logs ADD COLUMN overtime_hours FLOAT DEFAULT 0"),
         ("work_logs", "hourly_rate", "ALTER TABLE work_logs ADD COLUMN hourly_rate FLOAT"),
         ("work_logs", "overtime_rate", "ALTER TABLE work_logs ADD COLUMN overtime_rate FLOAT"),
+        ("production_logs", "unit_price", "ALTER TABLE production_logs ADD COLUMN unit_price FLOAT"),
     ]
     with engine.connect() as conn:
         for table, col, sql in ALTERS:

@@ -34,30 +34,36 @@ def build_report(db: Session, start: date, end: date) -> ReportData:
             ProductCategory.unit_price,
             ProductCategory.cost_per_unit,
             func.sum(ProductionLog.quantity).label("quantity"),
+            func.sum(
+                ProductionLog.quantity
+                * func.coalesce(ProductionLog.unit_price, ProductCategory.unit_price)
+            ).label("revenue"),
         )
         .join(ProductionLog, ProductionLog.category_id == ProductCategory.id)
         .filter(ProductionLog.date >= start, ProductionLog.date <= end)
         .group_by(ProductCategory.id)
         .all()
     )
-    categories = [
-        CategoryRow(
-            category_id=r.category_id,
-            name=r.name,
-            unit=r.unit or "斤",
-            quantity=float(r.quantity or 0),
-            unit_price=float(r.unit_price or 0),
-            cost_per_unit=float(r.cost_per_unit or 0),
-            revenue=round(float(r.quantity or 0) * float(r.unit_price or 0), 2),
-            cost=round(float(r.quantity or 0) * float(r.cost_per_unit or 0), 2),
-            gross_profit=round(
-                float(r.quantity or 0)
-                * (float(r.unit_price or 0) - float(r.cost_per_unit or 0)),
-                2,
-            ),
+    categories = []
+    for r in cat_rows:
+        quantity = float(r.quantity or 0)
+        revenue = round(float(r.revenue or 0), 2)
+        cost = round(quantity * float(r.cost_per_unit or 0), 2)
+        gross_profit = round(revenue - cost, 2)
+        unit_price = round(revenue / quantity, 2) if quantity else float(r.unit_price or 0)
+        categories.append(
+            CategoryRow(
+                category_id=r.category_id,
+                name=r.name,
+                unit=r.unit or "斤",
+                quantity=quantity,
+                unit_price=unit_price,
+                cost_per_unit=float(r.cost_per_unit or 0),
+                revenue=revenue,
+                cost=cost,
+                gross_profit=gross_profit,
+            )
         )
-        for r in cat_rows
-    ]
 
     workers = calc_wages(db, start, end)
 
