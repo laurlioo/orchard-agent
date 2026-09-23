@@ -1,9 +1,13 @@
 """调 DeepSeek 生成报表文字摘要。"""
 import json
+import logging
+
 import httpx
 
 from app.core.config import settings
 from app.schemas.report import ReportData
+
+logger = logging.getLogger(__name__)
 
 SUMMARY_PROMPT = """你是果园运营助理，请基于以下结构化数据用中文写一段 80-150 字的简要日报总结，
 覆盖：①总产量/各品类产出亮点；②毛利水平；③工时与工资；④若有零产或亏损品类需提示。
@@ -48,10 +52,11 @@ def write_summary(report: ReportData) -> str:
             r.raise_for_status()
             return r.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        return _fallback_summary(report, error=str(e))
+        logger.error("AI 摘要生成失败: %s", e)
+        return _fallback_summary(report)
 
 
-def _fallback_summary(report: ReportData, error: str = "") -> str:
+def _fallback_summary(report: ReportData) -> str:
     parts = [
         f"{report.period_start} 至 {report.period_end}（{report.report_type}）汇总：",
         f"总产量 {report.total_quantity}，总销售额 {report.total_revenue} 元，"
@@ -61,6 +66,4 @@ def _fallback_summary(report: ReportData, error: str = "") -> str:
     if report.categories:
         top = max(report.categories, key=lambda c: c.gross_profit)
         parts.append(f"毛利最高品类为 {top.name}（{top.gross_profit} 元）。")
-    if error:
-        parts.append(f"（AI 摘要生成失败：{error}）")
     return "".join(parts)

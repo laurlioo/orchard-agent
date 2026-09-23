@@ -9,6 +9,17 @@ const TYPES = [
   { key: 'monthly', label: '月报' },
 ]
 
+function daysAgoISO(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return localDateISO(d)
+}
+
+function monthStartISO(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
 export default function Reports() {
   const today = localDateISO()
   const [type, setType] = useState('daily')
@@ -18,6 +29,20 @@ export default function Reports() {
   const [loading, setLoading] = useState(false)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const selectType = (t: string) => {
+    setType(t)
+    if (t === 'daily') {
+      setStart(today)
+      setEnd(today)
+    } else if (t === 'weekly') {
+      setStart(daysAgoISO(6))
+      setEnd(today)
+    } else if (t === 'monthly') {
+      setStart(monthStartISO())
+      setEnd(today)
+    }
+  }
 
   const paramsFor = () => {
     const params: { report_type: string; start: string; end?: string } = { report_type: type, start }
@@ -68,7 +93,7 @@ export default function Reports() {
             {TYPES.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setType(t.key)}
+                onClick={() => selectType(t.key)}
                 className={`px-3 py-1.5 rounded text-sm ${
                   type === t.key ? 'bg-slate-800 text-white' : 'border border-slate-200'
                 }`}

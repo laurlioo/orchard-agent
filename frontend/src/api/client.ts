@@ -104,13 +104,16 @@ export interface LoginResponse {
 }
 
 export const AuthApi = {
-  status: () => http.get<{ initialized: boolean }>('/auth/status').then((r) => r.data),
-  setup: (username: string, password: string) =>
-    http.post<LoginResponse>('/auth/setup', { username, password }).then((r) => r.data),
+  status: () =>
+    http.get<{ initialized: boolean; setup_token_required: boolean }>('/auth/status').then((r) => r.data),
+  setup: (username: string, password: string, setupToken?: string) =>
+    http
+      .post<LoginResponse>('/auth/setup', { username, password, setup_token: setupToken || '' })
+      .then((r) => r.data),
   login: (username: string, password: string) =>
     http.post<LoginResponse>('/auth/login', { username, password }).then((r) => r.data),
-  workerLogin: (name: string) =>
-    http.post<LoginResponse>('/auth/worker-login', { name }).then((r) => r.data),
+  workerLogin: (name: string, phone: string) =>
+    http.post<LoginResponse>('/auth/worker-login', { name, phone }).then((r) => r.data),
   me: () => http.get<AuthUser>('/auth/me').then((r) => r.data),
   register: (data: { username: string; password: string; role: string }) =>
     http.post<AuthUser>('/auth/register', data).then((r) => r.data),

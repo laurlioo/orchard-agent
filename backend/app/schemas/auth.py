@@ -10,6 +10,13 @@ class LoginRequest(BaseModel):
 
 class WorkerLoginRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
+    phone: str = Field(..., min_length=1, max_length=20)
+
+
+class SetupRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=6, max_length=100)
+    setup_token: str = Field("", max_length=200)
 
 
 class RegisterRequest(BaseModel):

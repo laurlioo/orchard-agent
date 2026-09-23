@@ -13,6 +13,9 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [workerName, setWorkerName] = useState('')
+  const [workerPhone, setWorkerPhone] = useState('')
+  const [setupToken, setSetupToken] = useState('')
+  const [setupRequiresToken, setSetupRequiresToken] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -22,7 +25,10 @@ export default function Login() {
       return
     }
     AuthApi.status()
-      .then((s) => setMode(s.initialized ? 'login' : 'setup'))
+      .then((s) => {
+        setMode(s.initialized ? 'login' : 'setup')
+        setSetupRequiresToken(Boolean(s.setup_token_required))
+      })
       .catch(() => setMode('login'))
   }, [navigate])
 
@@ -39,14 +45,16 @@ export default function Login() {
         if (!password) return setError('请输入密码')
         if (password.length < 6) return setError('密码至少 6 位')
         if (password !== confirm) return setError('两次密码不一致')
-        const res = await AuthApi.setup(username.trim(), password)
+        if (setupRequiresToken && !setupToken.trim()) return setError('请输入初始化密钥')
+        const res = await AuthApi.setup(username.trim(), password, setupToken.trim())
         setSession(res.access_token, res.role, res.username)
         goHome(res.role)
         return
       }
       if (kind === 'worker') {
         if (!workerName.trim()) return setError('请输入姓名')
-        const res = await AuthApi.workerLogin(workerName.trim())
+        if (!workerPhone.trim()) return setError('请输入登记手机号')
+        const res = await AuthApi.workerLogin(workerName.trim(), workerPhone.trim())
         setSession(res.access_token, res.role, res.username)
         goHome(res.role)
         return
@@ -166,21 +174,45 @@ export default function Login() {
                     />
                   </label>
                 )}
+                {isSetup && setupRequiresToken && (
+                  <label className="block">
+                    <span className="text-xs text-slate-600">初始化密钥</span>
+                    <input
+                      value={setupToken}
+                      onChange={(e) => setSetupToken(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && submit()}
+                      placeholder="由部署环境 SETUP_TOKEN 提供"
+                      className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-400"
+                    />
+                  </label>
+                )}
               </>
             ) : (
-              <label className="block">
-                <span className="text-xs text-slate-600">姓名（与工人档案一致）</span>
-                <input
-                  value={workerName}
-                  onChange={(e) => setWorkerName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && submit()}
-                  placeholder="例如：张三"
-                  className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-400"
-                />
+              <>
+                <label className="block">
+                  <span className="text-xs text-slate-600">姓名（与工人档案一致）</span>
+                  <input
+                    value={workerName}
+                    onChange={(e) => setWorkerName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submit()}
+                    placeholder="例如：张三"
+                    className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-400"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-600">登记手机号（身份校验）</span>
+                  <input
+                    value={workerPhone}
+                    onChange={(e) => setWorkerPhone(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submit()}
+                    placeholder="与工人档案登记的手机号一致"
+                    className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-400"
+                  />
+                </label>
                 <p className="text-[11px] text-slate-400 mt-1.5">
                   登录后可查看自己的每日、每月工时和工资，不能修改数据。
                 </p>
-              </label>
+              </>
             )}
           </div>
 

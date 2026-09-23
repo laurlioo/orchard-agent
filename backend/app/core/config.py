@@ -21,6 +21,8 @@ class Settings:
     APP_ENV: str = os.getenv("APP_ENV", "development")
     ENABLE_DOCS: str = os.getenv("ENABLE_DOCS", "")
     JWT_SECRET: str = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
+    # 生产环境首次初始化管理员时需要的密钥；留空表示不校验（仅建议开发环境）
+    SETUP_TOKEN: str = os.getenv("SETUP_TOKEN", "")
 
     @property
     def is_turso(self) -> bool:
@@ -67,13 +69,21 @@ class Settings:
             return False
         return not self.is_production
 
+    @property
+    def setup_requires_token(self) -> bool:
+        """是否需要在初始化管理员时校验 setup_token。"""
+        return bool(self.SETUP_TOKEN)
+
     def assert_secure(self) -> None:
-        """生产环境拒绝默认 JWT 密钥。"""
+        """生产环境拒绝默认 JWT 密钥，并强制要求 SETUP_TOKEN。"""
         if not self.is_production:
             return
         raw = os.getenv("JWT_SECRET", "")
         if not raw or raw == DEFAULT_JWT_SECRET:
             raise RuntimeError("生产环境必须设置 JWT_SECRET，且不能使用默认值")
+        setup_token = os.getenv("SETUP_TOKEN", "")
+        if not setup_token or setup_token == "change-me":
+            raise RuntimeError("生产环境必须设置 SETUP_TOKEN（首次初始化管理员所需的密钥）")
 
 
 settings = Settings()

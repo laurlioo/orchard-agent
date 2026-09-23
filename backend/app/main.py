@@ -144,6 +144,7 @@ if not cors_origins:
         "http://127.0.0.1:5173",
     ]
 
+app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -151,7 +152,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(AuthMiddleware)
 
 app.include_router(auth.router)
 app.include_router(workers.router)
