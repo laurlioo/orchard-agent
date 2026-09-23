@@ -18,6 +18,7 @@ from app.models.worker import Worker
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     SetupRequest,
     TokenResponse,
     UserOut,
@@ -130,3 +131,22 @@ def auth_status(db: Session = Depends(get_db)):
         "initialized": has_admin,
         "setup_token_required": settings.setup_requires_token,
     }
+
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """用 SETUP_TOKEN 重置密码（找回管理员/用户密码）。"""
+    if not settings.setup_requires_token or not hmac.compare_digest(
+        payload.setup_token.encode(), settings.SETUP_TOKEN.encode()
+    ):
+        raise HTTPException(403, "重置密钥错误")
+    user = None
+    if payload.username:
+        user = db.query(User).filter(User.username == payload.username).first()
+    else:
+        user = db.query(User).order_by(User.id).first()
+    if not user:
+        raise HTTPException(404, "用户不存在")
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return {"ok": True, "username": user.username}

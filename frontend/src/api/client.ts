@@ -117,6 +117,8 @@ export const AuthApi = {
   me: () => http.get<AuthUser>('/auth/me').then((r) => r.data),
   register: (data: { username: string; password: string; role: string }) =>
     http.post<AuthUser>('/auth/register', data).then((r) => r.data),
+  resetPassword: (data: { username?: string; new_password: string; setup_token: string }) =>
+    http.post<{ ok: boolean; username: string }>('/auth/reset-password', data).then((r) => r.data),
 }
 
 // ---------- 类型 ----------
@@ -233,11 +235,18 @@ export interface ChatMessage {
   content: string
 }
 
+export interface Page<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 // ---------- API 模块 ----------
 
 export const WorkersApi = {
-  list: (activeOnly = false) =>
-    http.get<Worker[]>('/workers', { params: { active_only: activeOnly } }).then((r) => r.data),
+  list: (params: { active_only?: boolean; limit?: number; offset?: number } = {}) =>
+    http.get<Page<Worker>>('/workers', { params }).then((r) => r.data),
   create: (data: Partial<Worker>) => http.post<Worker>('/workers', data).then((r) => r.data),
   update: (id: number, data: Partial<Worker>) =>
     http.patch<Worker>(`/workers/${id}`, data).then((r) => r.data),
@@ -253,8 +262,8 @@ export const ProductsApi = {
 }
 
 export const WorkLogsApi = {
-  list: (params: { start?: string; end?: string; worker_id?: number } = {}) =>
-    http.get<WorkLog[]>('/worklogs', { params }).then((r) => r.data),
+  list: (params: { start?: string; end?: string; worker_id?: number; limit?: number; offset?: number } = {}) =>
+    http.get<Page<WorkLog>>('/worklogs', { params }).then((r) => r.data),
   create: (data: Partial<WorkLog>) => http.post<WorkLog>('/worklogs', data).then((r) => r.data),
   update: (id: number, data: Partial<WorkLog>) =>
     http.patch<WorkLog>(`/worklogs/${id}`, data).then((r) => r.data),
@@ -262,8 +271,8 @@ export const WorkLogsApi = {
 }
 
 export const ProductionLogsApi = {
-  list: (params: { start?: string; end?: string; category_id?: number } = {}) =>
-    http.get<ProductionLog[]>('/production-logs', { params }).then((r) => r.data),
+  list: (params: { start?: string; end?: string; category_id?: number; limit?: number; offset?: number } = {}) =>
+    http.get<Page<ProductionLog>>('/production-logs', { params }).then((r) => r.data),
   create: (data: Partial<ProductionLog>) =>
     http.post<ProductionLog>('/production-logs', data).then((r) => r.data),
   update: (id: number, data: Partial<ProductionLog>) =>
@@ -272,8 +281,8 @@ export const ProductionLogsApi = {
 }
 
 export const IssuesApi = {
-  list: (params: { status?: string; category?: string } = {}) =>
-    http.get<Issue[]>('/issues', { params }).then((r) => r.data),
+  list: (params: { status?: string; category?: string; limit?: number; offset?: number } = {}) =>
+    http.get<Page<Issue>>('/issues', { params }).then((r) => r.data),
   create: (data: Partial<Issue>) => http.post<Issue>('/issues', data).then((r) => r.data),
   update: (id: number, data: Partial<Issue>) =>
     http.patch<Issue>(`/issues/${id}`, data).then((r) => r.data),

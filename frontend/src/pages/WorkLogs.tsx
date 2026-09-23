@@ -8,8 +8,11 @@ import {
   type WorkLog,
   type Worker,
 } from '../api/client'
+import { toast } from '../lib/toast'
+import Pagination from '../components/Pagination'
 
 const emptyForm = { worker_id: 0, hours: 8, overtime_hours: 0, task_desc: '' }
+const PAGE_SIZE = 20
 
 export default function WorkLogs() {
   const admin = isAdmin()
@@ -17,23 +20,27 @@ export default function WorkLogs() {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [date, setDate] = useState(localDateISO())
   const [editing, setEditing] = useState<Partial<WorkLog> | null>(null)
+  const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
 
   const load = async () => {
     try {
-      setList(await WorkLogsApi.list({ start: date, end: date }))
+      const res = await WorkLogsApi.list({ start: date, end: date, limit: PAGE_SIZE, offset })
+      setList(res.items)
+      setTotal(res.total)
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
   useEffect(() => {
-    WorkersApi.list(true).then(setWorkers)
+    WorkersApi.list({ active_only: true, limit: 500 }).then((r) => setWorkers(r.items))
   }, [])
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date])
+  }, [date, offset])
 
   const openCreate = () => setEditing({ ...emptyForm, date })
 
@@ -49,9 +56,9 @@ export default function WorkLogs() {
 
   const submit = async () => {
     if (!editing) return
-    if (!editing.worker_id) return alert('请选择工人')
+    if (!editing.worker_id) return toast('请选择工人')
     const totalHours = (editing.hours || 0) + (editing.overtime_hours || 0)
-    if (totalHours <= 0) return alert('正常工时和加班工时不能都为 0')
+    if (totalHours <= 0) return toast('正常工时和加班工时不能都为 0')
     try {
       if (editing.id) {
         await WorkLogsApi.update(editing.id, {
@@ -75,7 +82,7 @@ export default function WorkLogs() {
       setEditing(null)
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
@@ -85,7 +92,7 @@ export default function WorkLogs() {
       await WorkLogsApi.remove(l.id)
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
@@ -195,6 +202,8 @@ export default function WorkLogs() {
           ))
         )}
       </div>
+
+      <Pagination total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
 
       {editing && (
         <div

@@ -23,6 +23,7 @@ AUTH_WHITELIST = {
     "/auth/login",
     "/auth/worker-login",
     "/auth/setup",
+    "/auth/reset-password",
     "/auth/status",
     "/agent/health",
 }

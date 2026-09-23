@@ -8,15 +8,18 @@ from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.user import User
 from app.models.issue import Issue
+from app.schemas.common import Page
 from app.schemas.issue import IssueCreate, IssueOut, IssueUpdate
 
 router = APIRouter(prefix="/issues", tags=["issues"])
 
 
-@router.get("", response_model=list[IssueOut])
+@router.get("", response_model=Page[IssueOut])
 def list_issues(
     status: str | None = Query(None),
     category: str | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     q = db.query(Issue)
@@ -24,7 +27,9 @@ def list_issues(
         q = q.filter(Issue.status == status)
     if category:
         q = q.filter(Issue.category == category)
-    return q.order_by(Issue.created_at.desc()).all()
+    total = q.count()
+    items = q.order_by(Issue.created_at.desc()).offset(offset).limit(limit).all()
+    return Page(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=IssueOut, status_code=201)

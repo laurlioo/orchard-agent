@@ -16,6 +16,7 @@ def calc_wages(db: Session, start: date, end: date) -> list[WorkerWageRow]:
         db.query(WorkLog)
         .options(joinedload(WorkLog.worker))
         .filter(WorkLog.date >= start, WorkLog.date <= end)
+        .order_by(WorkLog.date.asc(), WorkLog.id.asc())
         .all()
     )
     buckets: dict[int, dict] = {}
@@ -37,28 +38,26 @@ def calc_wages(db: Session, start: date, end: date) -> list[WorkerWageRow]:
                 "overtime_hours": 0.0,
                 "regular_wage": 0.0,
                 "overtime_wage": 0.0,
-                "rates": set(),
-                "ot_mults": set(),
+                "last_rate": rate,
+                "last_ot_mult": ot_mult,
             }
             buckets[w.id] = b
         b["hours"] += reg_hours
         b["overtime_hours"] += ot_hours
         b["regular_wage"] += reg_hours * rate
         b["overtime_wage"] += ot_hours * rate * ot_mult
-        b["rates"].add(rate)
-        b["ot_mults"].add(ot_mult)
+        b["last_rate"] = rate
+        b["last_ot_mult"] = ot_mult
 
     result = []
     for b in buckets.values():
-        rates = b["rates"]
-        ot_mults = b["ot_mults"]
         result.append(
             WorkerWageRow(
                 worker_id=b["worker_id"],
                 name=b["name"],
                 role=b["role"],
-                hourly_rate=next(iter(rates)) if len(rates) == 1 else 0.0,
-                overtime_rate=next(iter(ot_mults)) if len(ot_mults) == 1 else 0.0,
+                hourly_rate=b["last_rate"],
+                overtime_rate=b["last_ot_mult"],
                 hours=round(b["hours"], 2),
                 overtime_hours=round(b["overtime_hours"], 2),
                 regular_wage=round(b["regular_wage"], 2),

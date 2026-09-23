@@ -1,5 +1,5 @@
 """工人 CRUD。"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -7,17 +7,25 @@ from app.core.security import require_admin
 from app.models.user import User
 from app.models.work_log import WorkLog
 from app.models.worker import Worker
+from app.schemas.common import Page
 from app.schemas.worker import WorkerCreate, WorkerUpdate, WorkerOut
 
 router = APIRouter(prefix="/workers", tags=["workers"])
 
 
-@router.get("", response_model=list[WorkerOut])
-def list_workers(active_only: bool = False, db: Session = Depends(get_db)):
+@router.get("", response_model=Page[WorkerOut])
+def list_workers(
+    active_only: bool = False,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
     q = db.query(Worker)
     if active_only:
         q = q.filter(Worker.active == True)
-    return q.order_by(Worker.id).all()
+    total = q.count()
+    items = q.order_by(Worker.id).offset(offset).limit(limit).all()
+    return Page(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=WorkerOut, status_code=201)

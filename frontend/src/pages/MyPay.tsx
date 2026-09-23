@@ -40,11 +40,11 @@ export default function MyPay() {
       setError('')
       try {
         const [ls, ws] = await Promise.all([
-          WorkLogsApi.list({ start: range.start, end: range.end }),
+          WorkLogsApi.list({ start: range.start, end: range.end, limit: 500 }),
           WagesApi.get(range.start, range.end),
         ])
         if (!cancelled) {
-          setLogs(ls)
+          setLogs(ls.items)
           setWages(ws)
         }
       } catch (e: any) {

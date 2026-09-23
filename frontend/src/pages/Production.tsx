@@ -8,6 +8,10 @@ import {
   type ProductionLog,
   type Product,
 } from '../api/client'
+import { toast } from '../lib/toast'
+import Pagination from '../components/Pagination'
+
+const PAGE_SIZE = 20
 
 export default function Production() {
   const admin = isAdmin()
@@ -20,23 +24,27 @@ export default function Production() {
   const [addingCat, setAddingCat] = useState(false)
   const [catForm, setCatForm] = useState<Partial<Product>>({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
   const [editingCat, setEditingCat] = useState<Partial<Product> | null>(null)
+  const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
 
   const load = async () => {
     const ps = await ProductsApi.list()
     setProducts(ps)
     if (tab === 'logs') {
-      setLogs(await ProductionLogsApi.list({ start: date, end: date }))
+      const res = await ProductionLogsApi.list({ start: date, end: date, limit: PAGE_SIZE, offset })
+      setLogs(res.items)
+      setTotal(res.total)
     }
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, tab])
+  }, [date, tab, offset])
 
   const submitLog = async () => {
-    if (!logForm.category_id) return alert('请选择品类')
-    if (!logForm.quantity || logForm.quantity <= 0) return alert('数量必须大于 0')
+    if (!logForm.category_id) return toast('请选择品类')
+    if (!logForm.quantity || logForm.quantity <= 0) return toast('数量必须大于 0')
     try {
       const dup = logs.find((l) => l.category_id === logForm.category_id)
       if (dup) {
@@ -49,31 +57,31 @@ export default function Production() {
       setLogForm({ category_id: 0, quantity: 0, notes: '' })
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
   const submitCat = async () => {
-    if (!catForm.name) return alert('品类名必填')
+    if (!catForm.name) return toast('品类名必填')
     try {
       await ProductsApi.create(catForm)
       setAddingCat(false)
       setCatForm({ name: '', unit: '斤', unit_price: 0, cost_per_unit: 0 })
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
   const submitCatEdit = async () => {
     if (!editingCat?.id) return
-    if (!editingCat.name) return alert('品类名必填')
+    if (!editingCat.name) return toast('品类名必填')
     try {
       await ProductsApi.update(editingCat.id, editingCat)
       setEditingCat(null)
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
@@ -161,7 +169,7 @@ export default function Production() {
                                 await ProductionLogsApi.remove(l.id)
                                 load()
                               } catch (e: any) {
-                                alert(e.message)
+                                toast(e.message)
                               }
                             }
                           }}
@@ -213,7 +221,7 @@ export default function Production() {
                                 await ProductsApi.remove(p.id)
                                 load()
                               } catch (e: any) {
-                                alert(e.message)
+                                toast(e.message)
                               }
                             }
                           }}
@@ -254,7 +262,7 @@ export default function Production() {
                           await ProductionLogsApi.remove(l.id)
                           load()
                         } catch (e: any) {
-                          alert(e.message)
+                          toast(e.message)
                         }
                       }
                     }}
@@ -293,7 +301,7 @@ export default function Production() {
                             await ProductsApi.remove(p.id)
                             load()
                           } catch (e: any) {
-                            alert(e.message)
+                            toast(e.message)
                           }
                         }
                       }}
@@ -308,6 +316,10 @@ export default function Production() {
           ))
         )}
       </div>
+
+      {tab === 'logs' && (
+        <Pagination total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
+      )}
 
       {addingLog && (
         <Modal title={`录入产量 (${date})`} onClose={() => setAddingLog(false)} onSubmit={submitLog}>

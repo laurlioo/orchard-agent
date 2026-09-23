@@ -10,6 +10,7 @@ from app.core.security import require_admin
 from app.models.user import User
 from app.models.product import ProductCategory
 from app.models.production_log import ProductionLog
+from app.schemas.common import Page
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.schemas.production_log import (
     ProductionLogCreate,
@@ -74,11 +75,13 @@ def delete_product(
 log_router = APIRouter(prefix="/production-logs", tags=["production-logs"])
 
 
-@log_router.get("", response_model=list[ProductionLogOut])
+@log_router.get("", response_model=Page[ProductionLogOut])
 def list_production_logs(
     start: date | None = Query(None),
     end: date | None = Query(None),
     category_id: int | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     q = db.query(ProductionLog).options(joinedload(ProductionLog.category))
@@ -88,7 +91,9 @@ def list_production_logs(
         q = q.filter(ProductionLog.date <= end)
     if category_id:
         q = q.filter(ProductionLog.category_id == category_id)
-    return q.order_by(ProductionLog.date.desc(), ProductionLog.id).all()
+    total = q.count()
+    items = q.order_by(ProductionLog.date.desc(), ProductionLog.id).offset(offset).limit(limit).all()
+    return Page(items=items, total=total, limit=limit, offset=offset)
 
 
 @log_router.post("", response_model=ProductionLogOut, status_code=201)

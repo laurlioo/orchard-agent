@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 import { WorkersApi, isAdmin, type Worker } from '../api/client'
+import { toast } from '../lib/toast'
+import Pagination from '../components/Pagination'
+
+const PAGE_SIZE = 20
 
 export default function Workers() {
   const admin = isAdmin()
   const [list, setList] = useState<Worker[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Partial<Worker> | null>(null)
+  const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
 
   const load = async () => {
     setLoading(true)
     try {
-      setList(await WorkersApi.list())
+      const res = await WorkersApi.list({ limit: PAGE_SIZE, offset })
+      setList(res.items)
+      setTotal(res.total)
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     } finally {
       setLoading(false)
     }
@@ -21,10 +29,11 @@ export default function Workers() {
 
   useEffect(() => {
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offset])
 
   const save = async () => {
-    if (!editing?.name) return alert('姓名必填')
+    if (!editing?.name) return toast('姓名必填')
     try {
       if (editing.id) {
         await WorkersApi.update(editing.id, editing)
@@ -34,7 +43,7 @@ export default function Workers() {
       setEditing(null)
       load()
     } catch (e: any) {
-      alert(e.message)
+      toast(e.message)
     }
   }
 
@@ -104,7 +113,7 @@ export default function Workers() {
                               await WorkersApi.remove(w.id)
                               load()
                             } catch (e: any) {
-                              alert(e.message)
+                              toast(e.message)
                             }
                           }
                         }}
@@ -160,7 +169,7 @@ export default function Workers() {
                           await WorkersApi.remove(w.id)
                           load()
                         } catch (e: any) {
-                          alert(e.message)
+                          toast(e.message)
                         }
                       }
                     }}
@@ -174,6 +183,8 @@ export default function Workers() {
           ))
         )}
       </div>
+
+      <Pagination total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
 
       {editing && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40 px-4" onClick={() => setEditing(null)}>

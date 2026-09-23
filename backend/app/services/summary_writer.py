@@ -1,6 +1,7 @@
 """调 DeepSeek 生成报表文字摘要。"""
 import json
 import logging
+import time
 
 import httpx
 
@@ -8,6 +9,16 @@ from app.core.config import settings
 from app.schemas.report import ReportData
 
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 2
+RETRY_BACKOFF_SECONDS = 0.5
+
+
+def _is_retryable(exc: Exception) -> bool:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code == 429 or exc.response.status_code >= 500
+    return isinstance(exc, httpx.TransportError)
+
 
 SUMMARY_PROMPT = """你是果园运营助理，请基于以下结构化数据用中文写一段 80-150 字的简要日报总结，
 覆盖：①总产量/各品类产出亮点；②毛利水平；③工时与工资；④若有零产或亏损品类需提示。
@@ -19,7 +30,7 @@ SUMMARY_PROMPT = """你是果园运营助理，请基于以下结构化数据用
 
 
 def write_summary(report: ReportData) -> str:
-    """调 DeepSeek 生成报表文字摘要，失败时返回兜底文案。"""
+    """调 DeepSeek 生成报表文字摘要，失败时自动重试，仍失败则返回兜底文案。"""
     if not settings.DEEPSEEK_API_KEY:
         return _fallback_summary(report)
 
@@ -42,18 +53,26 @@ def write_summary(report: ReportData) -> str:
         "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",
     }
-    try:
-        with httpx.Client(timeout=60.0) as client:
-            r = client.post(
-                settings.chat_completions_url,
-                json=payload,
-                headers=headers,
-            )
-            r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.error("AI 摘要生成失败: %s", e)
-        return _fallback_summary(report)
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            with httpx.Client(timeout=60.0) as client:
+                r = client.post(
+                    settings.chat_completions_url,
+                    json=payload,
+                    headers=headers,
+                )
+                r.raise_for_status()
+                return r.json()["choices"][0]["message"]["content"].strip()
+        except httpx.HTTPError as exc:
+            if attempt < MAX_RETRIES and _is_retryable(exc):
+                time.sleep(RETRY_BACKOFF_SECONDS * (attempt + 1))
+                continue
+            logger.error("AI 摘要生成失败: %s", exc)
+            return _fallback_summary(report)
+        except Exception as exc:
+            logger.error("AI 摘要生成失败: %s", exc)
+            return _fallback_summary(report)
+    return _fallback_summary(report)
 
 
 def _fallback_summary(report: ReportData) -> str:

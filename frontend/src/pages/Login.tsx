@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Apple, Shield, User } from 'lucide-react'
 import { AuthApi, setSession, getToken, homePath } from '../api/client'
+import { toast } from '../lib/toast'
 
 type LoginKind = 'admin' | 'worker'
 
@@ -18,6 +19,11 @@ export default function Login() {
   const [setupRequiresToken, setSetupRequiresToken] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [resetUsername, setResetUsername] = useState('')
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetConfirm, setResetConfirm] = useState('')
+  const [resetToken, setResetToken] = useState('')
 
   useEffect(() => {
     if (getToken()) {
@@ -64,6 +70,30 @@ export default function Login() {
       const res = await AuthApi.login(username.trim(), password)
       setSession(res.access_token, res.role, res.username)
       goHome(res.role)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const submitReset = async () => {
+    setError('')
+    if (resetPassword.length < 6) return setError('新密码至少 6 位')
+    if (resetPassword !== resetConfirm) return setError('两次新密码不一致')
+    if (!resetToken.trim()) return setError('请输入初始化密钥')
+    setSubmitting(true)
+    try {
+      await AuthApi.resetPassword({
+        username: resetUsername.trim() || undefined,
+        new_password: resetPassword,
+        setup_token: resetToken.trim(),
+      })
+      setShowReset(false)
+      setResetPassword('')
+      setResetConfirm('')
+      setResetToken('')
+      toast('密码已重置，请用新密码登录', 'success')
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -236,6 +266,54 @@ export default function Login() {
               '管理员登录'
             )}
           </button>
+
+          {!isSetup && kind === 'admin' && (
+            <div className="mt-4 pt-3 border-t border-slate-200">
+              {showReset ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-600">重置管理员密码</p>
+                  <input
+                    value={resetUsername}
+                    onChange={(e) => setResetUsername(e.target.value)}
+                    placeholder="用户名（留空则重置第一个账号）"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                  />
+                  <input
+                    type="password"
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    placeholder="新密码（至少 6 位）"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                  />
+                  <input
+                    type="password"
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    placeholder="确认新密码"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                  />
+                  <input
+                    value={resetToken}
+                    onChange={(e) => setResetToken(e.target.value)}
+                    placeholder="初始化密钥 SETUP_TOKEN"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowReset(false)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                      取消
+                    </button>
+                    <button onClick={submitReset} disabled={submitting} className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50">
+                      重置密码
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowReset(true)} className="text-xs text-slate-400 hover:text-emerald-700">
+                  忘记密码？
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -10,17 +10,20 @@ from app.core.security import require_admin
 from app.models.user import User
 from app.models.work_log import WorkLog
 from app.models.worker import Worker
+from app.schemas.common import Page
 from app.schemas.work_log import WorkLogCreate, WorkLogUpdate, WorkLogOut
 
 router = APIRouter(prefix="/worklogs", tags=["worklogs"])
 
 
-@router.get("", response_model=list[WorkLogOut])
+@router.get("", response_model=Page[WorkLogOut])
 def list_worklogs(
     request: Request,
     start: date | None = Query(None),
     end: date | None = Query(None),
     worker_id: int | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     q = db.query(WorkLog).options(joinedload(WorkLog.worker))
@@ -32,7 +35,9 @@ def list_worklogs(
         q = q.filter(WorkLog.date <= end)
     if worker_id:
         q = q.filter(WorkLog.worker_id == worker_id)
-    return q.order_by(WorkLog.date.desc(), WorkLog.id).all()
+    total = q.count()
+    items = q.order_by(WorkLog.date.desc(), WorkLog.id).offset(offset).limit(limit).all()
+    return Page(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=WorkLogOut, status_code=201)

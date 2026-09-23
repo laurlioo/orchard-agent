@@ -27,5 +27,7 @@ services:
         value: https://orchard-agent-omega.vercel.app
       - key: DATABASE_URL
         sync: false
+      - key: DATABASE_AUTH_TOKEN
+        sync: false
       - key: DB_PATH
         value: ./orchard.db

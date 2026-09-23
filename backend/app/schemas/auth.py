@@ -19,6 +19,12 @@ class SetupRequest(BaseModel):
     setup_token: str = Field("", max_length=200)
 
 
+class ResetPasswordRequest(BaseModel):
+    username: str | None = None
+    new_password: str = Field(..., min_length=6, max_length=100)
+    setup_token: str = Field(..., min_length=1, max_length=200)
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6, max_length=100)
