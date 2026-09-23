@@ -147,7 +147,6 @@ export default function Login() {
               >
                 <Shield size={18} />
                 管理员登录
-                <span className="text-[10px] text-slate-500">可修改全部数据</span>
               </button>
               <button
                 type="button"
@@ -163,7 +162,6 @@ export default function Login() {
               >
                 <User size={18} />
                 工人查询
-                <span className="text-[10px] text-slate-500">用姓名看工时工资</span>
               </button>
             </div>
           )}
@@ -239,9 +237,6 @@ export default function Login() {
                     className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-400"
                   />
                 </label>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  登录后可查看自己的每日、每月工时和工资，不能修改数据。
-                </p>
               </>
             )}
           </div>
@@ -261,7 +256,7 @@ export default function Login() {
             ) : isSetup ? (
               '创建管理员'
             ) : kind === 'worker' ? (
-              '查询我的工时工资'
+              '查询'
             ) : (
               '管理员登录'
             )}
